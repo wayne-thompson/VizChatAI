@@ -82,7 +82,20 @@ export default function UploadSection({ onUpload, isUploading }: UploadSectionPr
           ${isDragReject ? 'border-red-500' : ''}
         `}
       >
-        <input {...getInputProps()} ref={fileInputRef} />
+        <input {...getInputProps()} />
+        <input 
+          type="file"
+          ref={fileInputRef}
+          style={{ display: 'none' }}
+          accept="image/jpeg,image/png"
+          onChange={(e) => {
+            const files = e.target.files;
+            if (files && files.length > 0) {
+              onDrop([files[0]]);
+              e.target.value = '';
+            }
+          }}
+        />
         <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-primary-50 mb-4">
           <i className="fas fa-cloud-upload-alt text-primary text-xl"></i>
         </div>

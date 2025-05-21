@@ -3,8 +3,8 @@ import { createContext, useContext, useState } from "react";
 
 // Create context for handling file upload
 export const UploadContext = createContext<{
-  triggerFileSelector: () => void;
-  setTriggerFileSelector: (callback: () => void) => void;
+  triggerFileSelector: (e?: React.MouseEvent) => void;
+  setTriggerFileSelector: React.Dispatch<React.SetStateAction<(e?: React.MouseEvent) => void>>;
 }>({
   triggerFileSelector: () => {},
   setTriggerFileSelector: () => {},
