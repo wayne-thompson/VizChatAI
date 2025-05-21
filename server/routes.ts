@@ -1,8 +1,7 @@
-import type { Express, Request, Response } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { v4 as uuidv4 } from 'uuid';
-import OpenAI from "openai";
 import { 
   insertVisualizationSchema, 
   insertMessageSchema 
@@ -12,22 +11,7 @@ import { fromZodError } from "zod-validation-error";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
-
-// Initialize OpenAI with API key
-const openai = new OpenAI({ 
-  apiKey: process.env.OPENAI_API_KEY || "",
-});
-
-// Utility function to safely process OpenAI API calls
-const safeOpenAIRequest = async <T>(callback: () => Promise<T>): Promise<T> => {
-  try {
-    const result = await callback();
-    return result;
-  } catch (error) {
-    console.error("OpenAI API error:", error);
-    throw new Error(`Error communicating with OpenAI: ${error.message || "Unknown error"}`);
-  }
-};
+import { checkOpenAIKey, analyzeVisualization, getChatResponse } from "./openai";
 
 // Setup multer for handling file uploads
 const upload = multer({
@@ -112,59 +96,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       try {
         console.log("Starting visualization analysis with OpenAI...");
-        // The newest OpenAI model is "gpt-4o" which was released May 13, 2024
         
-        // Make sure the image URL is properly formatted for OpenAI
-        const imageUrl = visualization.imageBase64.startsWith('data:') 
-          ? visualization.imageBase64 
-          : `data:image/jpeg;base64,${visualization.imageBase64}`;
-        
-        console.log("Sending request to OpenAI Vision API...");
-        
-        const visionResponse = await safeOpenAIRequest(async () => {
-          return await openai.chat.completions.create({
-            model: "gpt-4o",
-            messages: [
-              {
-                role: "system",
-                content: "You are Viz, an expert data visualization analyst. Analyze the chart or graph in the image and provide a concise, insightful summary. Format your response as JSON with a 'summary' field containing a paragraph overview and a 'points' field containing an array of key observations as bullet points."
-              },
-              {
-                role: "user",
-                content: [
-                  {
-                    type: "text",
-                    text: "Analyze this data visualization and provide a brief but insightful summary. What does this chart show? What are the key trends or patterns? What might be important to know about this data?"
-                  },
-                  {
-                    type: "image_url",
-                    image_url: {
-                      url: imageUrl
-                    }
-                  }
-                ],
-              },
-            ],
-            response_format: { type: "json_object" },
-            max_tokens: 800,
-          });
-        });
-        
-        console.log("Received response from OpenAI");
-        
-        let result;
-        try {
-          const responseContent = visionResponse.choices[0].message.content || '{"summary": "Could not analyze the image", "points": ["No data available"]}';
-          result = JSON.parse(responseContent);
-          console.log("Successfully parsed OpenAI response");
-        } catch (parseError) {
-          console.error("Error parsing OpenAI response:", parseError);
-          result = {
-            summary: "I analyzed your visualization but had trouble formatting the results.",
-            points: ["The visualization contains data that could be analyzed further.", 
-                    "Try asking specific questions about elements you see in the chart."]
-          };
-        }
+        // Use our utility function to analyze the visualization
+        const result = await analyzeVisualization(visualization.imageBase64);
+        console.log("Successfully analyzed visualization");
         
         // Update visualization with initial summary
         const updatedVisualization = await storage.updateVisualization(id, {
@@ -310,39 +245,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       try {
-        // The newest OpenAI model is "gpt-4o" which was released May 13, 2024
-        console.log("Preparing chat message for OpenAI API");
+        console.log("Processing chat message for visualization:", id);
         
-        // Format the most recent messages properly (latest 5)
-        const latestMessages = recentMessages.slice(-5).map(msg => ({
-          role: msg.role as "user" | "assistant",
+        // Use our utility function to get the chat response
+        const responseContent = await getChatResponse(recentMessages.map(msg => ({
+          role: msg.role,
           content: msg.content
-        }));
+        })));
         
-        // Create a clean array of messages for the API
-        const apiMessages = [
-          {
-            role: "system",
-            content: "You are Viz, a friendly and expert-level data visualization analyst. You're helping a user understand their chart or graph. Provide clear, insightful explanations. Be concise but thorough."
-          },
-          ...latestMessages
-        ];
-        
-        console.log("Sending chat request to OpenAI");
-        const chatResponse = await safeOpenAIRequest(async () => {
-          return await openai.chat.completions.create({
-            model: "gpt-4o",
-            messages: apiMessages as any, // Type assertion to work around TypeScript errors
-            max_tokens: 1000,
-          });
-        });
-        console.log("Received chat response from OpenAI");
+        console.log("Received chat response successfully");
 
         // Save assistant response
         const assistantMessage = await storage.createMessage({
           visualizationId: id,
           role: "assistant",
-          content: chatResponse.choices[0].message.content || "I'm sorry, I couldn't analyze that properly."
+          content: responseContent
         });
         
         res.json({
