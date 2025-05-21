@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRoute, useLocation } from "wouter";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -12,7 +12,6 @@ import PreviewSection from "@/components/PreviewSection";
 import ShareSection from "@/components/ShareSection";
 import { useChat } from "@/hooks/useChat";
 import { useSharing } from "@/hooks/useSharing";
-import { useUpload } from "../components/Layout";
 
 export default function VisualizationDetail() {
   const [, setLocation] = useLocation();
