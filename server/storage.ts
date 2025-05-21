@@ -65,13 +65,19 @@ export class MemStorage implements IStorage {
     const now = new Date();
     
     const newVisualization: Visualization = {
-      ...visualization,
       id,
+      userId: visualization.userId ?? null,
+      title: visualization.title ?? null,
+      description: visualization.description ?? null,
+      imageBase64: visualization.imageBase64,
+      initialSummary: visualization.initialSummary ?? null,
+      analysis: visualization.analysis ?? null,
+      insights: visualization.insights ?? null,
       shareId,
       createdAt: now,
       updatedAt: now,
-      analysis: visualization.analysis || null,
-      insights: visualization.insights || null
+      tags: visualization.tags ?? null,
+      isPublic: visualization.isPublic ?? false
     };
     
     this.visualizations.set(id, newVisualization);
@@ -189,12 +195,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteVisualization(id: number): Promise<boolean> {
-    const result = await db
-      .delete(visualizations)
-      .where(eq(visualizations.id, id));
-    
-    // PostgreSQL returns rowCount for deleted rows
-    return result.rowCount > 0;
+    try {
+      await db
+        .delete(visualizations)
+        .where(eq(visualizations.id, id));
+      
+      return true;
+    } catch (error) {
+      console.error("Failed to delete visualization:", error);
+      return false;
+    }
   }
 
   // Message methods
