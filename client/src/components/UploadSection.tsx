@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Visualization } from '@shared/schema';
 import { useToast } from '@/hooks/use-toast';
 import { useUpload } from '@/components/Layout';
-import type { MouseEvent } from 'react';
 
 interface UploadSectionProps {
   onUpload: (file: File) => Promise<Visualization>;
@@ -43,20 +42,16 @@ export default function UploadSection({ onUpload, isUploading }: UploadSectionPr
     }
   }, [onUpload, toast]);
   
-  // Create a function to handle file selection
-  const handleFileSelection = useCallback((e?: MouseEvent) => {
-    if (e) e.preventDefault();
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
-    }
-  }, []);
-  
   // Setup the file selector trigger
   useEffect(() => {
-    setTriggerFileSelector(() => handleFileSelection);
-  }, [setTriggerFileSelector, handleFileSelection]);
+    setTriggerFileSelector(() => {
+      return () => {
+        fileInputRef.current?.click();
+      };
+    });
+  }, [setTriggerFileSelector]);
   
-  const { getRootProps, getInputProps, isDragReject } = useDropzone({
+  const { getRootProps, getInputProps, isDragReject, open } = useDropzone({
     onDrop,
     accept: {
       'image/jpeg': [],
@@ -72,7 +67,7 @@ export default function UploadSection({ onUpload, isUploading }: UploadSectionPr
   
   return (
     <div id="upload-section" className="mb-6">
-      <h2 className="text-lg font-semibold mb-3">Upload Image</h2>
+      <h2 className="text-lg font-semibold mb-3">Upload Visualization</h2>
       <p className="text-sm text-gray-500 mb-4">Upload a chart or graph image to analyze</p>
       
       <div 
@@ -82,20 +77,7 @@ export default function UploadSection({ onUpload, isUploading }: UploadSectionPr
           ${isDragReject ? 'border-red-500' : ''}
         `}
       >
-        <input {...getInputProps()} />
-        <input 
-          type="file"
-          ref={fileInputRef}
-          style={{ display: 'none' }}
-          accept="image/jpeg,image/png"
-          onChange={(e) => {
-            const files = e.target.files;
-            if (files && files.length > 0) {
-              onDrop([files[0]]);
-              e.target.value = '';
-            }
-          }}
-        />
+        <input {...getInputProps()} ref={fileInputRef} />
         <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-primary-50 mb-4">
           <i className="fas fa-cloud-upload-alt text-primary text-xl"></i>
         </div>
@@ -112,7 +94,7 @@ export default function UploadSection({ onUpload, isUploading }: UploadSectionPr
           type="button" 
           disabled={isUploading}
           className="inline-flex items-center px-4 py-2"
-          onClick={handleFileSelection}
+          onClick={open}
         >
           {isUploading ? (
             <>

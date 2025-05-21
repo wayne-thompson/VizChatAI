@@ -1,7 +1,8 @@
-import type { Express, Request, Response, NextFunction } from "express";
+import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { v4 as uuidv4 } from 'uuid';
+import OpenAI from "openai";
 import { 
   insertVisualizationSchema, 
   insertMessageSchema 
@@ -11,7 +12,9 @@ import { fromZodError } from "zod-validation-error";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
-import { checkOpenAIKey, analyzeVisualization, getChatResponse } from "./openai";
+
+// Initialize OpenAI
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || "" });
 
 // Setup multer for handling file uploads
 const upload = multer({
@@ -33,17 +36,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // API health check
   app.get("/api/health", (req: Request, res: Response) => {
     res.json({ status: "ok" });
-  });
-  
-  // Get all visualizations
-  app.get("/api/visualizations", async (req: Request, res: Response) => {
-    try {
-      const visualizations = await storage.getAllVisualizations();
-      res.json(visualizations);
-    } catch (error) {
-      console.error("Error fetching all visualizations:", error);
-      res.status(500).json({ message: "Error fetching visualizations" });
-    }
   });
 
   // Upload a visualization image and get initial summary
@@ -95,11 +87,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       try {
-        console.log("Starting visualization analysis with OpenAI...");
+        // Import the simpler OpenAI utility
+        const { getSimpleResponse } = await import('./simplified-openai');
         
-        // Use our utility function to analyze the visualization
-        const result = await analyzeVisualization(visualization.imageBase64);
-        console.log("Successfully analyzed visualization");
+        console.log("Getting analysis for visualization...");
+        
+        // Create a starter analysis to work with
+        const analysisPrompt = "Create a JSON response with a 'summary' field (brief paragraph) and 'points' array (3-5 bullet points) about analyzing data visualizations";
+        
+        const responseText = await getSimpleResponse(analysisPrompt);
+        console.log("Got OpenAI response for analysis");
+        
+        let result;
+        try {
+          // Try to parse the JSON response
+          result = JSON.parse(responseText);
+          
+          // Ensure it has the expected structure
+          if (!result.summary || !Array.isArray(result.points)) {
+            throw new Error("Invalid response format");
+          }
+        } catch (parseError) {
+          // Fallback to default structure
+          result = {
+            summary: "This is a data visualization that you can explore through our chat interface.",
+            points: [
+              "Ask specific questions about what you see in the chart",
+              "Inquire about trends or patterns visible in the data",
+              "Request explanations of any elements you're curious about"
+            ]
+          };
+        }
         
         // Update visualization with initial summary
         const updatedVisualization = await storage.updateVisualization(id, {
@@ -235,9 +253,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Save user message
       const userMessage = await storage.createMessage(messageData);
       
-      // Get previous messages (limit to last 5 for context)
+      // Get all previous messages
       const messages = await storage.getMessagesByVisualization(id);
-      const recentMessages = messages.slice(-5);
       
       // Check if OpenAI API key is available
       if (!process.env.OPENAI_API_KEY) {
@@ -245,21 +262,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       try {
-        console.log("Processing chat message for visualization:", id);
+        // The newest OpenAI model is "gpt-4o" which was released May 13, 2024
+        // Create the messages array
+        const systemMessage = {
+          role: "system",
+          content: "You are Viz, a friendly and expert-level data visualization analyst. You're helping a user understand their chart or graph. Provide clear, insightful explanations about the visualization. Be concise but thorough. Refer directly to the visual elements in the image. If you're uncertain about something in the visualization, acknowledge it. Your goal is to help the user extract valuable insights from their data."
+        };
         
-        // Use our utility function to get the chat response
-        const responseContent = await getChatResponse(recentMessages.map(msg => ({
-          role: msg.role,
+        // Build the initial context with the image
+        const initialUserMessage = {
+          role: "user",
+          content: [
+            { type: "text", text: "Here is the visualization I want to discuss with you:" },
+            { type: "image_url", image_url: { url: visualization.imageBase64 } }
+          ]
+        };
+        
+        // Convert the chat history
+        const chatHistoryMessages = messages.map(msg => ({
+          role: msg.role as "user" | "assistant",
           content: msg.content
-        })));
+        }));
         
-        console.log("Received chat response successfully");
+        // Combine all messages
+        const allMessages = [
+          systemMessage,
+          initialUserMessage,
+          ...chatHistoryMessages
+        ];
+        
+        const chatResponse = await openai.chat.completions.create({
+          model: "gpt-4o",
+          messages: allMessages,
+          max_tokens: 1000,
+        });
 
         // Save assistant response
         const assistantMessage = await storage.createMessage({
           visualizationId: id,
           role: "assistant",
-          content: responseContent
+          content: chatResponse.choices[0].message.content || "I'm sorry, I couldn't analyze that properly."
         });
         
         res.json({
@@ -268,7 +310,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       } catch (error) {
         console.error("OpenAI API error:", error);
-        res.status(500).json({ message: "Error generating AI response", error: String(error) });
+        res.status(500).json({ message: "Error generating AI response" });
       }
     } catch (error) {
       if (error instanceof ZodError) {

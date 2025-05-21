@@ -22,19 +22,14 @@ export const visualizations = pgTable("visualizations", {
   description: text("description"),
   imageBase64: text("image_base64").notNull(),
   initialSummary: text("initial_summary"),
-  analysis: jsonb("analysis"),
-  insights: text("insights").array(),
   shareId: text("share_id").notNull().unique(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
   tags: text("tags").array(),
-  isPublic: boolean("is_public").default(false),
 });
 
 export const insertVisualizationSchema = createInsertSchema(visualizations).omit({
   id: true,
   createdAt: true,
-  updatedAt: true,
 });
 
 // Chat messages schema
