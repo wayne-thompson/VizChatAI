@@ -19,7 +19,7 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   // Create a function to trigger file upload
-  const [triggerFileSelector, setTriggerFileSelector] = useState<() => void>(() => {});
+  const [triggerFileSelector, setTriggerFileSelector] = useState<(e?: React.MouseEvent) => void>(() => {});
 
   return (
     <UploadContext.Provider value={{ triggerFileSelector, setTriggerFileSelector }}>

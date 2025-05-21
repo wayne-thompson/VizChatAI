@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Visualization } from '@shared/schema';
 import { useToast } from '@/hooks/use-toast';
 import { useUpload } from '@/components/Layout';
+import type { MouseEvent } from 'react';
 
 interface UploadSectionProps {
   onUpload: (file: File) => Promise<Visualization>;
@@ -42,16 +43,20 @@ export default function UploadSection({ onUpload, isUploading }: UploadSectionPr
     }
   }, [onUpload, toast]);
   
+  // Create a function to handle file selection
+  const handleFileSelection = useCallback((e?: MouseEvent) => {
+    if (e) e.preventDefault();
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  }, []);
+  
   // Setup the file selector trigger
   useEffect(() => {
-    setTriggerFileSelector(() => {
-      return () => {
-        fileInputRef.current?.click();
-      };
-    });
-  }, [setTriggerFileSelector]);
+    setTriggerFileSelector(() => handleFileSelection);
+  }, [setTriggerFileSelector, handleFileSelection]);
   
-  const { getRootProps, getInputProps, isDragReject, open } = useDropzone({
+  const { getRootProps, getInputProps, isDragReject } = useDropzone({
     onDrop,
     accept: {
       'image/jpeg': [],
@@ -94,7 +99,7 @@ export default function UploadSection({ onUpload, isUploading }: UploadSectionPr
           type="button" 
           disabled={isUploading}
           className="inline-flex items-center px-4 py-2"
-          onClick={open}
+          onClick={handleFileSelection}
         >
           {isUploading ? (
             <>
