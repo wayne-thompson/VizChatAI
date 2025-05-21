@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -8,6 +8,18 @@ import { Badge } from "@/components/ui/badge";
 import { Visualization } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { formatDistanceToNow } from "date-fns";
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger
+} from "@/components/ui/alert-dialog";
+import { useToast } from "@/hooks/use-toast";
 
 // Function to truncate long text
 const truncate = (text: string | null | undefined, maxLength: number = 100) => {
@@ -16,10 +28,49 @@ const truncate = (text: string | null | undefined, maxLength: number = 100) => {
 };
 
 export default function Projects() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [visualizationToDelete, setVisualizationToDelete] = useState<Visualization | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const { data: visualizations, isLoading, error } = useQuery<Visualization[]>({
     queryKey: ['/api/visualizations'],
     queryFn: () => apiRequest<Visualization[]>('/api/visualizations')
   });
+  
+  // Function to handle project deletion
+  const handleDeleteProject = async () => {
+    if (!visualizationToDelete) return;
+    
+    try {
+      setIsDeleting(true);
+      
+      // Call API to delete the visualization
+      await apiRequest(`/api/visualizations/${visualizationToDelete.id}`, {
+        method: 'DELETE'
+      });
+      
+      // Show success message
+      toast({
+        title: "Visualization deleted",
+        description: "The visualization has been successfully removed",
+        variant: "default"
+      });
+      
+      // Refresh the visualizations list
+      queryClient.invalidateQueries({ queryKey: ['/api/visualizations'] });
+    } catch (error) {
+      // Show error message
+      toast({
+        title: "Error deleting visualization",
+        description: "An error occurred while deleting the visualization",
+        variant: "destructive"
+      });
+    } finally {
+      setIsDeleting(false);
+      setVisualizationToDelete(null);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -121,11 +172,25 @@ export default function Projects() {
                 </div>
               </CardContent>
               <CardFooter className="flex justify-between border-t pt-4">
-                <Link href={`/visualization/${viz.id}`}>
-                  <Button variant="outline" size="sm">
-                    <i className="fas fa-eye mr-1"></i> View
+                <div className="flex gap-2">
+                  <Link href={`/visualization/${viz.id}`}>
+                    <Button variant="outline" size="sm">
+                      <i className="fas fa-eye mr-1"></i> View
+                    </Button>
+                  </Link>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setVisualizationToDelete(viz);
+                    }}
+                  >
+                    <i className="fas fa-trash-alt mr-1"></i> Delete
                   </Button>
-                </Link>
+                </div>
                 <Link href={`/share/${viz.shareId}`}>
                   <Button variant="outline" size="sm">
                     <i className="fas fa-share-alt mr-1"></i> Share
@@ -152,6 +217,36 @@ export default function Projects() {
           </Link>
         </div>
       )}
+      
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!visualizationToDelete} onOpenChange={(open) => !open && setVisualizationToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure you want to delete this visualization?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the visualization
+              and all associated data including analysis and chat history.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteProject}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+            >
+              {isDeleting ? (
+                <>
+                  <i className="fas fa-spinner fa-spin mr-2"></i>
+                  Deleting...
+                </>
+              ) : (
+                "Delete Visualization"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

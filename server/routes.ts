@@ -202,6 +202,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Error updating visualization" });
     }
   });
+  
+  // Delete visualization and associated data
+  app.delete("/api/visualizations/:id", async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const visualization = await storage.getVisualization(id);
+      
+      if (!visualization) {
+        return res.status(404).json({ message: "Visualization not found" });
+      }
+      
+      // Delete the visualization
+      const success = await storage.deleteVisualization(id);
+      
+      if (success) {
+        res.status(204).end(); // 204 No Content indicates successful deletion
+      } else {
+        res.status(500).json({ message: "Error deleting visualization" });
+      }
+    } catch (error) {
+      console.error("Error deleting visualization:", error);
+      res.status(500).json({ message: "Error deleting visualization" });
+    }
+  });
 
   // Get messages for a visualization
   app.get("/api/visualizations/:id/messages", async (req: Request, res: Response) => {
