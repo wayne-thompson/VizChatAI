@@ -33,10 +33,10 @@ export default function Home() {
   } = useSharing(visualization?.id || 0);
 
   return (
-    <div className="flex flex-col md:flex-row h-screen">
+    <div className="flex flex-col md:flex-row h-screen ml-16 md:ml-64">
       {/* Left Panel: Upload and Preview */}
       <div className="w-full md:w-1/2 p-4 md:p-6 md:border-r border-gray-200 overflow-y-auto h-[50vh] md:h-screen">
-        <div className="max-w-3xl mx-auto">
+        <div className="max-w-xl mx-auto">
           <UploadSection onUpload={uploadImage} isUploading={isUploading} />
           
           <PreviewSection 
