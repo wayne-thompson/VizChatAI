@@ -1,8 +1,9 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Button } from '@/components/ui/button';
 import { Visualization } from '@shared/schema';
 import { useToast } from '@/hooks/use-toast';
+import { useUpload } from '@/components/Layout';
 
 interface UploadSectionProps {
   onUpload: (file: File) => Promise<Visualization>;
@@ -11,7 +12,9 @@ interface UploadSectionProps {
 
 export default function UploadSection({ onUpload, isUploading }: UploadSectionProps) {
   const { toast } = useToast();
+  const { setTriggerFileSelector } = useUpload();
   const [isDragActive, setIsDragActive] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (acceptedFiles.length === 0) return;
@@ -39,7 +42,16 @@ export default function UploadSection({ onUpload, isUploading }: UploadSectionPr
     }
   }, [onUpload, toast]);
   
-  const { getRootProps, getInputProps, isDragReject } = useDropzone({
+  // Setup the file selector trigger
+  useEffect(() => {
+    setTriggerFileSelector(() => {
+      return () => {
+        fileInputRef.current?.click();
+      };
+    });
+  }, [setTriggerFileSelector]);
+  
+  const { getRootProps, getInputProps, isDragReject, open } = useDropzone({
     onDrop,
     accept: {
       'image/jpeg': [],
@@ -50,6 +62,7 @@ export default function UploadSection({ onUpload, isUploading }: UploadSectionPr
     onDragLeave: () => setIsDragActive(false),
     onDropAccepted: () => setIsDragActive(false),
     onDropRejected: () => setIsDragActive(false),
+    noClick: true, // Disable native click handling as we'll handle it with our button
   });
   
   return (
@@ -64,7 +77,7 @@ export default function UploadSection({ onUpload, isUploading }: UploadSectionPr
           ${isDragReject ? 'border-red-500' : ''}
         `}
       >
-        <input {...getInputProps()} />
+        <input {...getInputProps()} ref={fileInputRef} />
         <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-primary-50 mb-4">
           <i className="fas fa-cloud-upload-alt text-primary text-xl"></i>
         </div>
@@ -81,6 +94,7 @@ export default function UploadSection({ onUpload, isUploading }: UploadSectionPr
           type="button" 
           disabled={isUploading}
           className="inline-flex items-center px-4 py-2"
+          onClick={open}
         >
           {isUploading ? (
             <>
