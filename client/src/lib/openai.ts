@@ -36,46 +36,64 @@ export async function uploadVisualization(file: File, title?: string, descriptio
     formData.append('tags', tags.join(','));
   }
   
-  const response = await fetch('/api/visualizations', {
-    method: 'POST',
-    body: formData,
-    credentials: 'include',
-  });
-  
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`${response.status}: ${text || response.statusText}`);
+  try {
+    const response = await fetch('/api/visualizations', {
+      method: 'POST',
+      body: formData,
+      credentials: 'include',
+    });
+    
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(`${response.status}: ${text || response.statusText}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error("Error uploading visualization:", error);
+    throw new Error("Failed to upload visualization. Please try again.");
   }
-  
-  return await response.json();
 }
 
 // Generate initial analysis for a visualization
 export async function analyzeVisualization(id: number): Promise<AnalysisResult> {
-  const response = await apiRequest('POST', `/api/visualizations/${id}/analyze`);
-  return await response.json();
+  try {
+    return await apiRequest(`/api/visualizations/${id}/analyze`, {
+      method: 'POST'
+    });
+  } catch (error) {
+    console.error("Error analyzing visualization:", error);
+    throw new Error("Failed to analyze visualization. Please try again.");
+  }
 }
 
 // Send a message to the AI assistant and get a response
 export async function sendMessage(visualizationId: number, content: string): Promise<MessageResponse> {
-  const response = await apiRequest('POST', `/api/visualizations/${visualizationId}/messages`, { content });
-  return await response.json();
+  try {
+    return await apiRequest(`/api/visualizations/${visualizationId}/messages`, { 
+      method: 'POST',
+      data: { content }
+    });
+  } catch (error) {
+    console.error("Error sending message:", error);
+    throw new Error("Failed to send message. Please try again.");
+  }
 }
 
 // Get a shared visualization and its messages
 export async function getSharedVisualization(shareId: string): Promise<VisualizationWithMessages> {
-  const response = await apiRequest('GET', `/api/share/${shareId}`);
-  return await response.json();
+  return await apiRequest(`/api/share/${shareId}`);
 }
 
 // Get all messages for a visualization
 export async function getMessages(visualizationId: number): Promise<Message[]> {
-  const response = await apiRequest('GET', `/api/visualizations/${visualizationId}/messages`);
-  return await response.json();
+  return await apiRequest(`/api/visualizations/${visualizationId}/messages`);
 }
 
 // Update visualization metadata
 export async function updateVisualization(id: number, data: { title?: string; description?: string; tags?: string[] }): Promise<Visualization> {
-  const response = await apiRequest('PATCH', `/api/visualizations/${id}`, data);
-  return await response.json();
+  return await apiRequest(`/api/visualizations/${id}`, {
+    method: 'PATCH',
+    data
+  });
 }
