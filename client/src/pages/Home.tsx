@@ -33,9 +33,9 @@ export default function Home() {
   } = useSharing(visualization?.id || 0);
 
   return (
-    <div className="flex flex-col md:flex-row h-screen ml-16 md:ml-64">
+    <div className="flex flex-col md:flex-row h-[calc(100vh-64px)]">
       {/* Left Panel: Upload and Preview */}
-      <div className="w-full md:w-1/2 p-4 md:p-6 md:border-r border-gray-200 overflow-y-auto h-[50vh] md:h-screen">
+      <div className="w-full md:w-1/2 p-4 md:p-6 md:border-r border-gray-200 overflow-y-auto h-[50vh] md:h-full">
         <div className="max-w-xl mx-auto">
           <UploadSection onUpload={uploadImage} isUploading={isUploading} />
           
@@ -56,7 +56,7 @@ export default function Home() {
       </div>
 
       {/* Right Panel: Chat Interface */}
-      <div className="w-full md:w-1/2 flex flex-col h-[50vh] md:h-screen">
+      <div className="w-full md:w-1/2 flex flex-col h-[50vh] md:h-full">
         <ChatHeader />
         
         <ChatMessages messages={messages} isTyping={isTyping} />
