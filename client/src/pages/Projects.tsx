@@ -97,7 +97,17 @@ export default function Projects() {
                   />
                 </div>
                 <p className="text-sm text-gray-600 mb-3">
-                  {truncate(viz.description || viz.initialSummary, 120)}
+                  {viz.description ? truncate(viz.description, 120) : 
+                   viz.initialSummary ? truncate(
+                     (() => {
+                       try {
+                         const parsed = JSON.parse(viz.initialSummary);
+                         return parsed.summary || viz.initialSummary;
+                       } catch (e) {
+                         return viz.initialSummary;
+                       }
+                     })(), 120) : 
+                   "No description available"}
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {viz.tags && viz.tags.map((tag, index) => (
