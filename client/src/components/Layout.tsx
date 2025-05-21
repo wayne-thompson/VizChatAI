@@ -1,4 +1,5 @@
 import { Link, useLocation } from "wouter";
+import React, { useRef } from "react";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -6,13 +7,68 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   const [, navigate] = useLocation();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const handleNewClick = () => {
-    navigate("/");
+    // Open file browser dialog directly
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+  
+  const handleFileSelected = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      
+      // Verify file type and size
+      const isValidType = ['image/jpeg', 'image/png'].includes(file.type);
+      const isValidSize = file.size <= 5 * 1024 * 1024; // 5MB max
+      
+      if (!isValidType) {
+        alert('Please select a JPEG or PNG image file.');
+        event.target.value = '';
+        return;
+      }
+      
+      if (!isValidSize) {
+        alert('File size should not exceed 5MB.');
+        event.target.value = '';
+        return;
+      }
+      
+      // Store file reference for upload
+      const fileReader = new FileReader();
+      fileReader.readAsDataURL(file);
+      fileReader.onload = () => {
+        // Create a fake drop event - we'll handle this in our Home component's upload section
+        sessionStorage.setItem('selectedFile', JSON.stringify({
+          name: file.name,
+          type: file.type,
+          size: file.size,
+          dataUrl: fileReader.result
+        }));
+        
+        // Navigate to home page
+        navigate("/");
+      };
+      
+      // Reset file input
+      event.target.value = '';
+    }
   };
 
   return (
     <div className="flex flex-col min-h-screen">
+      {/* Hidden file input for New button */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        style={{ display: 'none' }}
+        accept="image/jpeg,image/png"
+        onChange={handleFileSelected}
+      />
+      
       {/* Top Navigation Bar */}
       <header className="w-full bg-white border-b border-gray-200 py-3 px-4 flex justify-between items-center">
         <div className="flex items-center space-x-3">
