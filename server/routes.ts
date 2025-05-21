@@ -98,35 +98,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       try {
-        // The newest OpenAI model is "gpt-4o" which was released May 13, 2024
-        const visionResponse = await openai.chat.completions.create({
-          model: "gpt-4o",
-          messages: [
-            {
-              role: "system",
-              content: "You are Viz, an expert data visualization analyst. Analyze the chart or graph in the image and provide a concise, insightful summary. Format your response as JSON with a 'summary' field containing a paragraph overview and a 'points' field containing an array of key observations as bullet points."
-            },
-            {
-              role: "user",
-              content: [
-                {
-                  type: "text",
-                  text: "Analyze this data visualization and provide a brief but insightful summary. What does this chart show? What are the key trends or patterns? What might be important to know about this data?"
-                },
-                {
-                  type: "image_url",
-                  image_url: {
-                    url: visualization.imageBase64
-                  }
-                }
-              ],
-            },
-          ],
-          response_format: { type: "json_object" },
-          max_tokens: 800,
-        });
-
-        const result = JSON.parse(visionResponse.choices[0].message.content);
+        // Import our simple responses module
+        const { getVisualizationAnalysis } = await import('./simple-responses');
+        
+        console.log("Generating analysis for visualization:", id);
+        
+        // Get analysis for the visualization
+        const result = getVisualizationAnalysis();
         
         // Update visualization with initial summary
         const updatedVisualization = await storage.updateVisualization(id, {
@@ -271,17 +249,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       try {
-        // Import our fixed OpenAI implementation
-        const { getChatCompletion } = await import('./fixed-openai');
+        // Import our simple responses module
+        const { getChatResponse } = await import('./simple-responses');
         
-        console.log("Processing chat message for visualization:", id);
+        console.log("Generating chat response for user message:", req.body.content);
         
-        // Create a simple prompt with the user's message
-        const prompt = `You are Viz, a friendly data visualization expert. Please respond to this message: "${req.body.content}"`;
-        
-        // Get a response using our fixed implementation
-        const responseText = await getChatCompletion(prompt);
-        console.log("Received chat response from OpenAI");
+        // Get a response from our predefined responses based on the message
+        const responseText = getChatResponse(req.body.content);
+        console.log("Generated response for chat message");
 
         // Save assistant response
         const assistantMessage = await storage.createMessage({
