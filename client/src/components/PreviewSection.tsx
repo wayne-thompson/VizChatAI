@@ -64,7 +64,7 @@ export default function PreviewSection({
           <img 
             src={visualization.imageBase64} 
             alt="Uploaded visualization" 
-            className="mx-auto max-h-full object-contain rounded" 
+            className="mx-auto max-h-[320px] w-auto object-contain rounded" 
           />
         ) : (
           <Skeleton className="h-64 w-full" />

@@ -3,8 +3,8 @@ import { createContext, useContext, useState } from "react";
 
 // Create context for handling file upload
 export const UploadContext = createContext<{
-  triggerFileSelector: () => void;
-  setTriggerFileSelector: (callback: () => void) => void;
+  triggerFileSelector: (e?: React.MouseEvent) => void;
+  setTriggerFileSelector: React.Dispatch<React.SetStateAction<(e?: React.MouseEvent) => void>>;
 }>({
   triggerFileSelector: () => {},
   setTriggerFileSelector: () => {},
@@ -19,7 +19,7 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   // Create a function to trigger file upload
-  const [triggerFileSelector, setTriggerFileSelector] = useState<() => void>(() => {});
+  const [triggerFileSelector, setTriggerFileSelector] = useState<(e?: React.MouseEvent) => void>(() => {});
 
   return (
     <UploadContext.Provider value={{ triggerFileSelector, setTriggerFileSelector }}>
@@ -53,8 +53,8 @@ export default function Layout({ children }: LayoutProps) {
               onClick={() => triggerFileSelector()} 
               className="hidden md:flex items-center bg-primary text-white px-4 py-2 rounded-md hover:bg-primary/90 transition-colors"
             >
-              <i className="fas fa-upload mr-2"></i>
-              Upload Visualization
+              <i className="fas fa-plus mr-2"></i>
+              New
             </button>
             <button className="md:hidden text-gray-600">
               <i className="fas fa-bars text-xl"></i>

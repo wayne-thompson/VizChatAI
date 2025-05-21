@@ -47,13 +47,14 @@ export default function ChatInput({ onSendMessage, isSending }: ChatInputProps) 
           <Button 
             type="submit" 
             size="icon"
-            className="inline-flex items-center justify-center rounded-full h-8 w-8 bg-primary hover:bg-primary/90 transition-colors"
+            variant="ghost"
+            className="inline-flex items-center justify-center h-8 w-8 transition-colors"
             disabled={!message.trim() || isSending}
           >
             {isSending ? (
-              <i className="fas fa-spinner fa-spin text-white text-sm"></i>
+              <i className="fas fa-spinner fa-spin text-primary text-sm"></i>
             ) : (
-              <i className="fas fa-paper-plane text-white text-sm"></i>
+              <i className="fas fa-paper-plane text-primary text-sm"></i>
             )}
           </Button>
         </div>

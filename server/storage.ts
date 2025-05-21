@@ -1,9 +1,12 @@
 import { v4 as uuidv4 } from 'uuid';
 import {
+  users, messages, visualizations,
   User, InsertUser,
   Visualization, InsertVisualization,
   Message, InsertMessage
 } from '@shared/schema';
+import { db } from './db';
+import { eq, desc } from 'drizzle-orm';
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -59,13 +62,22 @@ export class MemStorage implements IStorage {
   async createVisualization(visualization: InsertVisualization): Promise<Visualization> {
     const id = this.visualizationCurrentId++;
     const shareId = visualization.shareId || uuidv4();
-    const createdAt = new Date();
+    const now = new Date();
     
     const newVisualization: Visualization = {
-      ...visualization,
       id,
+      userId: visualization.userId ?? null,
+      title: visualization.title ?? null,
+      description: visualization.description ?? null,
+      imageBase64: visualization.imageBase64,
+      initialSummary: visualization.initialSummary ?? null,
+      analysis: visualization.analysis ?? null,
+      insights: visualization.insights ?? null,
       shareId,
-      createdAt,
+      createdAt: now,
+      updatedAt: now,
+      tags: visualization.tags ?? null,
+      isPublic: visualization.isPublic ?? false
     };
     
     this.visualizations.set(id, newVisualization);
@@ -121,4 +133,102 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+export class DatabaseStorage implements IStorage {
+  // User methods
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const [user] = await db.insert(users).values(insertUser).returning();
+    return user;
+  }
+
+  // Visualization methods
+  async createVisualization(visualization: InsertVisualization): Promise<Visualization> {
+    // Ensure we have a shareId
+    if (!visualization.shareId) {
+      visualization.shareId = uuidv4();
+    }
+    
+    // Include current date for createdAt and updatedAt
+    const now = new Date();
+    const vizWithDates = {
+      ...visualization,
+      createdAt: now,
+      updatedAt: now
+    };
+    
+    const [newVisualization] = await db.insert(visualizations).values(vizWithDates).returning();
+    return newVisualization;
+  }
+
+  async getVisualization(id: number): Promise<Visualization | undefined> {
+    const [visualization] = await db.select().from(visualizations).where(eq(visualizations.id, id));
+    return visualization;
+  }
+
+  async getVisualizationByShareId(shareId: string): Promise<Visualization | undefined> {
+    const [visualization] = await db.select().from(visualizations).where(eq(visualizations.shareId, shareId));
+    return visualization;
+  }
+
+  async updateVisualization(id: number, data: Partial<Visualization>): Promise<Visualization | undefined> {
+    const updateData = {
+      ...data,
+      updatedAt: new Date()
+    };
+    
+    const [updated] = await db
+      .update(visualizations)
+      .set(updateData)
+      .where(eq(visualizations.id, id))
+      .returning();
+    
+    return updated;
+  }
+
+  async deleteVisualization(id: number): Promise<boolean> {
+    try {
+      await db
+        .delete(visualizations)
+        .where(eq(visualizations.id, id));
+      
+      return true;
+    } catch (error) {
+      console.error("Failed to delete visualization:", error);
+      return false;
+    }
+  }
+
+  // Get all visualizations
+  async getAllVisualizations(): Promise<Visualization[]> {
+    return await db
+      .select()
+      .from(visualizations)
+      .orderBy(desc(visualizations.createdAt));
+  }
+  
+  // Message methods
+  async createMessage(message: InsertMessage): Promise<Message> {
+    const [newMessage] = await db.insert(messages).values(message).returning();
+    return newMessage;
+  }
+
+  async getMessagesByVisualization(visualizationId: number): Promise<Message[]> {
+    return await db
+      .select()
+      .from(messages)
+      .where(eq(messages.visualizationId, visualizationId))
+      .orderBy(messages.createdAt);
+  }
+}
+
+// Export the database storage instance
+export const storage = new DatabaseStorage();

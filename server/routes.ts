@@ -37,6 +37,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/health", (req: Request, res: Response) => {
     res.json({ status: "ok" });
   });
+  
+  // Get all visualizations
+  app.get("/api/visualizations", async (req: Request, res: Response) => {
+    try {
+      const visualizations = await storage.getAllVisualizations();
+      res.json(visualizations);
+    } catch (error) {
+      console.error("Error fetching all visualizations:", error);
+      res.status(500).json({ message: "Error fetching visualizations" });
+    }
+  });
 
   // Upload a visualization image and get initial summary
   app.post("/api/visualizations", upload.single("image"), async (req: Request, res: Response) => {
@@ -87,37 +98,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       try {
-        // Import the simpler OpenAI utility
-        const { getSimpleResponse } = await import('./simplified-openai');
-        
-        console.log("Getting analysis for visualization...");
-        
-        // Create a starter analysis to work with
-        const analysisPrompt = "Create a JSON response with a 'summary' field (brief paragraph) and 'points' array (3-5 bullet points) about analyzing data visualizations";
-        
-        const responseText = await getSimpleResponse(analysisPrompt);
-        console.log("Got OpenAI response for analysis");
-        
-        let result;
-        try {
-          // Try to parse the JSON response
-          result = JSON.parse(responseText);
-          
-          // Ensure it has the expected structure
-          if (!result.summary || !Array.isArray(result.points)) {
-            throw new Error("Invalid response format");
-          }
-        } catch (parseError) {
-          // Fallback to default structure
-          result = {
-            summary: "This is a data visualization that you can explore through our chat interface.",
-            points: [
-              "Ask specific questions about what you see in the chart",
-              "Inquire about trends or patterns visible in the data",
-              "Request explanations of any elements you're curious about"
-            ]
-          };
-        }
+        // The newest OpenAI model is "gpt-4o" which was released May 13, 2024
+        const visionResponse = await openai.chat.completions.create({
+          model: "gpt-4o",
+          messages: [
+            {
+              role: "system",
+              content: "You are Viz, an expert data visualization analyst. Analyze the chart or graph in the image and provide a concise, insightful summary. Format your response as JSON with a 'summary' field containing a paragraph overview and a 'points' field containing an array of key observations as bullet points."
+            },
+            {
+              role: "user",
+              content: [
+                {
+                  type: "text",
+                  text: "Analyze this data visualization and provide a brief but insightful summary. What does this chart show? What are the key trends or patterns? What might be important to know about this data?"
+                },
+                {
+                  type: "image_url",
+                  image_url: {
+                    url: visualization.imageBase64
+                  }
+                }
+              ],
+            },
+          ],
+          response_format: { type: "json_object" },
+          max_tokens: 800,
+        });
+
+        const result = JSON.parse(visionResponse.choices[0].message.content);
         
         // Update visualization with initial summary
         const updatedVisualization = await storage.updateVisualization(id, {
@@ -262,46 +271,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       try {
-        // The newest OpenAI model is "gpt-4o" which was released May 13, 2024
-        // Create the messages array
-        const systemMessage = {
-          role: "system",
-          content: "You are Viz, a friendly and expert-level data visualization analyst. You're helping a user understand their chart or graph. Provide clear, insightful explanations about the visualization. Be concise but thorough. Refer directly to the visual elements in the image. If you're uncertain about something in the visualization, acknowledge it. Your goal is to help the user extract valuable insights from their data."
-        };
+        // Import our fixed OpenAI implementation
+        const { getChatCompletion } = await import('./fixed-openai');
         
-        // Build the initial context with the image
-        const initialUserMessage = {
-          role: "user",
-          content: [
-            { type: "text", text: "Here is the visualization I want to discuss with you:" },
-            { type: "image_url", image_url: { url: visualization.imageBase64 } }
-          ]
-        };
+        console.log("Processing chat message for visualization:", id);
         
-        // Convert the chat history
-        const chatHistoryMessages = messages.map(msg => ({
-          role: msg.role as "user" | "assistant",
-          content: msg.content
-        }));
+        // Create a simple prompt with the user's message
+        const prompt = `You are Viz, a friendly data visualization expert. Please respond to this message: "${req.body.content}"`;
         
-        // Combine all messages
-        const allMessages = [
-          systemMessage,
-          initialUserMessage,
-          ...chatHistoryMessages
-        ];
-        
-        const chatResponse = await openai.chat.completions.create({
-          model: "gpt-4o",
-          messages: allMessages,
-          max_tokens: 1000,
-        });
+        // Get a response using our fixed implementation
+        const responseText = await getChatCompletion(prompt);
+        console.log("Received chat response from OpenAI");
 
         // Save assistant response
         const assistantMessage = await storage.createMessage({
           visualizationId: id,
           role: "assistant",
-          content: chatResponse.choices[0].message.content || "I'm sorry, I couldn't analyze that properly."
+          content: responseText
         });
         
         res.json({
