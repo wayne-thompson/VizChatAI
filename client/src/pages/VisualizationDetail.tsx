@@ -22,20 +22,7 @@ export default function VisualizationDetail() {
   const [summary, setSummary] = useState<{ summary: string; points: string[] } | null>(null);
   const [isGeneratingInsights, setIsGeneratingInsights] = useState(false);
   
-  // Handle "New" button click to navigate back to home page
-  const { setTriggerFileSelector } = useUpload();
-  
-  useEffect(() => {
-    // Update the trigger to navigate to home page when "New" button is clicked
-    setTriggerFileSelector(() => () => {
-      setLocation('/');
-    });
-    
-    return () => {
-      // Cleanup
-      setTriggerFileSelector(() => () => {});
-    };
-  }, [setTriggerFileSelector, setLocation]);
+  // No need for "New" button handling - it's now managed in the Layout component
 
   // Fetch visualization data
   const { 

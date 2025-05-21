@@ -1,9 +1,8 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Button } from '@/components/ui/button';
 import { Visualization } from '@shared/schema';
 import { useToast } from '@/hooks/use-toast';
-import { useUpload } from '@/components/Layout';
 import type { MouseEvent } from 'react';
 
 interface UploadSectionProps {
@@ -13,7 +12,6 @@ interface UploadSectionProps {
 
 export default function UploadSection({ onUpload, isUploading }: UploadSectionProps) {
   const { toast } = useToast();
-  const { setTriggerFileSelector } = useUpload();
   const [isDragActive, setIsDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -50,11 +48,6 @@ export default function UploadSection({ onUpload, isUploading }: UploadSectionPr
       fileInputRef.current.click();
     }
   }, []);
-  
-  // Setup the file selector trigger
-  useEffect(() => {
-    setTriggerFileSelector(() => handleFileSelection);
-  }, [setTriggerFileSelector, handleFileSelection]);
   
   const { getRootProps, getInputProps, isDragReject } = useDropzone({
     onDrop,
