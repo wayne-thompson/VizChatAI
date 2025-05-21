@@ -12,6 +12,7 @@ import PreviewSection from "@/components/PreviewSection";
 import ShareSection from "@/components/ShareSection";
 import { useChat } from "@/hooks/useChat";
 import { useSharing } from "@/hooks/useSharing";
+import { useUpload } from "@/components/Layout";
 
 export default function VisualizationDetail() {
   const [, setLocation] = useLocation();
@@ -20,6 +21,21 @@ export default function VisualizationDetail() {
   const queryClient = useQueryClient();
   const [summary, setSummary] = useState<{ summary: string; points: string[] } | null>(null);
   const [isGeneratingInsights, setIsGeneratingInsights] = useState(false);
+  
+  // Handle "New" button click to navigate back to home page
+  const { setTriggerFileSelector } = useUpload();
+  
+  useEffect(() => {
+    // Update the trigger to navigate to home page when "New" button is clicked
+    setTriggerFileSelector(() => () => {
+      setLocation('/');
+    });
+    
+    return () => {
+      // Cleanup
+      setTriggerFileSelector(() => () => {});
+    };
+  }, [setTriggerFileSelector, setLocation]);
 
   // Fetch visualization data
   const { 
