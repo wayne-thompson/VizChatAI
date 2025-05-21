@@ -49,13 +49,12 @@ export default function Layout({ children }: LayoutProps) {
           </nav>
           
           <div className="flex items-center space-x-4">
-            <button 
-              onClick={() => triggerFileSelector()} 
+            <Link href="/"
               className="hidden md:flex items-center bg-primary text-white px-4 py-2 rounded-md hover:bg-primary/90 transition-colors"
             >
               <i className="fas fa-plus mr-2"></i>
               New
-            </button>
+            </Link>
             <button className="md:hidden text-gray-600">
               <i className="fas fa-bars text-xl"></i>
             </button>
