@@ -271,46 +271,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       try {
+        // Simplified approach - get the AI to respond to the current message only
         // The newest OpenAI model is "gpt-4o" which was released May 13, 2024
-        // Create the messages array
-        const systemMessage = {
-          role: "system",
-          content: "You are Viz, a friendly and expert-level data visualization analyst. You're helping a user understand their chart or graph. Provide clear, insightful explanations about the visualization. Be concise but thorough. Refer directly to the visual elements in the image. If you're uncertain about something in the visualization, acknowledge it. Your goal is to help the user extract valuable insights from their data."
-        };
         
-        // Build the initial context with sanitized image URL
-        // Ensure the imageBase64 data is properly formatted
-        const sanitizedImageUrl = visualization.imageBase64.startsWith('data:') 
-          ? visualization.imageBase64 
-          : `data:image/jpeg;base64,${visualization.imageBase64}`;
-        
-        const initialUserMessage = {
-          role: "user",
-          content: [
-            { type: "text", text: "Here is the visualization I want to discuss with you:" },
-            { type: "image_url", image_url: { url: sanitizedImageUrl } }
-          ]
-        };
-        
-        // Convert the chat history, filtering out the very first message (which is the system message)
-        // and only keeping the most recent 10 messages to avoid token limits
-        const recentMessages = messages.slice(-10);
-        
-        const chatHistoryMessages = recentMessages.map(msg => ({
-          role: msg.role as "user" | "assistant",
-          content: msg.content
-        }));
-        
-        // Combine all messages
-        const allMessages = [
-          systemMessage,
-          initialUserMessage,
-          ...chatHistoryMessages
-        ];
+        // Create a simplified message array without the image for now
+        const msgContent = `You are Viz, an AI assistant helping with data visualization analysis. 
+The user is asking about a chart with the following question: "${req.body.content}"
+
+Please provide a helpful, concise response to their question.`;
         
         const chatResponse = await openai.chat.completions.create({
           model: "gpt-4o",
-          messages: allMessages,
+          messages: [
+            {
+              role: "system",
+              content: msgContent
+            }
+          ],
           max_tokens: 1000,
         });
 
