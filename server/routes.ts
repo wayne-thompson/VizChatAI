@@ -278,17 +278,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
           content: "You are Viz, a friendly and expert-level data visualization analyst. You're helping a user understand their chart or graph. Provide clear, insightful explanations about the visualization. Be concise but thorough. Refer directly to the visual elements in the image. If you're uncertain about something in the visualization, acknowledge it. Your goal is to help the user extract valuable insights from their data."
         };
         
-        // Build the initial context with the image
+        // Build the initial context with sanitized image URL
+        // Ensure the imageBase64 data is properly formatted
+        const sanitizedImageUrl = visualization.imageBase64.startsWith('data:') 
+          ? visualization.imageBase64 
+          : `data:image/jpeg;base64,${visualization.imageBase64}`;
+        
         const initialUserMessage = {
           role: "user",
           content: [
             { type: "text", text: "Here is the visualization I want to discuss with you:" },
-            { type: "image_url", image_url: { url: visualization.imageBase64 } }
+            { type: "image_url", image_url: { url: sanitizedImageUrl } }
           ]
         };
         
-        // Convert the chat history
-        const chatHistoryMessages = messages.map(msg => ({
+        // Convert the chat history, filtering out the very first message (which is the system message)
+        // and only keeping the most recent 10 messages to avoid token limits
+        const recentMessages = messages.slice(-10);
+        
+        const chatHistoryMessages = recentMessages.map(msg => ({
           role: msg.role as "user" | "assistant",
           content: msg.content
         }));
