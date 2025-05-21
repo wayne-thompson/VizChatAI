@@ -14,7 +14,9 @@ import path from "path";
 import fs from "fs";
 
 // Initialize OpenAI
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || "" });
+const openai = new OpenAI({ 
+  apiKey: process.env.OPENAI_API_KEY || "",
+});
 
 // Setup multer for handling file uploads
 const upload = multer({
@@ -262,8 +264,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Save user message
       const userMessage = await storage.createMessage(messageData);
       
-      // Get all previous messages
+      // Get previous messages (limit to last 5 for context)
       const messages = await storage.getMessagesByVisualization(id);
+      const recentMessages = messages.slice(-5);
       
       // Check if OpenAI API key is available
       if (!process.env.OPENAI_API_KEY) {
@@ -271,25 +274,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       try {
-        // Simplified approach - get the AI to respond to the current message only
         // The newest OpenAI model is "gpt-4o" which was released May 13, 2024
+        console.log("Preparing to send message to OpenAI API");
         
-        // Create a simplified message array without the image for now
-        const msgContent = `You are Viz, an AI assistant helping with data visualization analysis. 
-The user is asking about a chart with the following question: "${req.body.content}"
-
-Please provide a helpful, concise response to their question.`;
+        // Format previous messages properly
+        const formattedMessages = recentMessages.map(msg => ({
+          role: msg.role as "user" | "assistant",
+          content: msg.content
+        }));
         
+        // Add system message at the beginning
+        formattedMessages.unshift({
+          role: "system",
+          content: "You are Viz, a friendly and expert-level data visualization analyst. You're helping a user understand their chart or graph. Provide clear, insightful explanations. Be concise but thorough."
+        });
+        
+        console.log("Sending request to OpenAI");
         const chatResponse = await openai.chat.completions.create({
           model: "gpt-4o",
-          messages: [
-            {
-              role: "system",
-              content: msgContent
-            }
-          ],
+          messages: formattedMessages,
           max_tokens: 1000,
         });
+        console.log("Received response from OpenAI");
 
         // Save assistant response
         const assistantMessage = await storage.createMessage({
@@ -304,7 +310,7 @@ Please provide a helpful, concise response to their question.`;
         });
       } catch (error) {
         console.error("OpenAI API error:", error);
-        res.status(500).json({ message: "Error generating AI response" });
+        res.status(500).json({ message: "Error generating AI response", error: String(error) });
       }
     } catch (error) {
       if (error instanceof ZodError) {
