@@ -18,12 +18,7 @@ const truncate = (text: string | null | undefined, maxLength: number = 100) => {
 export default function Projects() {
   const { data: visualizations, isLoading, error } = useQuery<Visualization[]>({
     queryKey: ['/api/visualizations'],
-    queryFn: async () => {
-      const response = await apiRequest<Visualization[]>('/api/visualizations', {
-        method: 'GET'
-      });
-      return response;
-    }
+    queryFn: () => apiRequest<Visualization[]>('/api/visualizations')
   });
 
   if (isLoading) {
