@@ -41,21 +41,53 @@ export function useChat(visualizationId: number) {
       setMessages(prev => [...prev, tempUserMsg]);
       
       try {
-        // Send to API
-        const response = await sendMessage(visualizationId, content);
+        // Create a direct fetch request to ensure we have more control
+        const response = await fetch(`/api/visualizations/${visualizationId}/messages`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ content }),
+          credentials: 'include',
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Server error: ${response.status}`);
+        }
+        
+        const data = await response.json();
         
         // Update messages with actual response
         setMessages(prev => [
           ...prev.filter(m => m.id !== tempUserMsg.id),
-          response.userMessage,
-          response.assistantMessage
+          data.userMessage,
+          data.assistantMessage
         ]);
         
-        return response;
+        return data;
       } catch (error) {
-        // Remove temporary message on error
-        setMessages(prev => prev.filter(m => m.id !== tempUserMsg.id));
-        throw error;
+        console.error("Error sending message:", error);
+        
+        // Add a fallback assistant message when there's an error
+        const fallbackAssistantMsg: Message = {
+          id: Date.now() + 1,
+          visualizationId,
+          role: "assistant",
+          content: "I apologize, but I'm having trouble processing your request right now. Please try again.",
+          createdAt: new Date()
+        };
+        
+        // Update messages with user message and fallback response
+        setMessages(prev => [
+          ...prev.filter(m => m.id !== tempUserMsg.id),
+          tempUserMsg,
+          fallbackAssistantMsg
+        ]);
+        
+        return {
+          userMessage: tempUserMsg,
+          assistantMessage: fallbackAssistantMsg
+        };
       } finally {
         setIsTyping(false);
       }
