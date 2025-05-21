@@ -37,20 +37,22 @@ export default function Home() {
       {/* Left Panel: Upload and Preview */}
       <div className="w-full md:w-1/2 p-4 md:p-6 md:border-r border-gray-200 overflow-y-auto h-[50vh] md:h-full">
         <div className="max-w-xl mx-auto">
-          <UploadSection onUpload={uploadImage} isUploading={isUploading} />
-          
-          <PreviewSection 
-            visualization={visualization} 
-            summary={summary}
-            onGenerateInsights={generateInsights}
-            isGenerating={isGeneratingInsights}
-          />
-          
-          {visualization && (
-            <ShareSection 
-              visualization={visualization} 
-              onUpdateTags={updateVisualizationTags}
-            />
+          {!visualization ? (
+            <UploadSection onUpload={uploadImage} isUploading={isUploading} />
+          ) : (
+            <>
+              <PreviewSection 
+                visualization={visualization} 
+                summary={summary}
+                onGenerateInsights={generateInsights}
+                isGenerating={isGeneratingInsights}
+              />
+              
+              <ShareSection 
+                visualization={visualization} 
+                onUpdateTags={updateVisualizationTags}
+              />
+            </>
           )}
         </div>
       </div>
