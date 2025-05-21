@@ -33,28 +33,30 @@ export default function Home() {
   } = useSharing(visualization?.id || 0);
 
   return (
-    <div className="flex flex-col md:flex-row h-full">
+    <div className="flex flex-col md:flex-row h-screen">
       {/* Left Panel: Upload and Preview */}
-      <div className="w-full md:w-1/2 p-4 md:p-6 md:border-r border-gray-200 md:overflow-y-auto mobile-full">
-        <UploadSection onUpload={uploadImage} isUploading={isUploading} />
-        
-        <PreviewSection 
-          visualization={visualization} 
-          summary={summary}
-          onGenerateInsights={generateInsights}
-          isGenerating={isGeneratingInsights}
-        />
-        
-        {visualization && (
-          <ShareSection 
+      <div className="w-full md:w-1/2 p-4 md:p-6 md:border-r border-gray-200 overflow-y-auto h-[50vh] md:h-screen">
+        <div className="max-w-3xl mx-auto">
+          <UploadSection onUpload={uploadImage} isUploading={isUploading} />
+          
+          <PreviewSection 
             visualization={visualization} 
-            onUpdateTags={updateVisualizationTags}
+            summary={summary}
+            onGenerateInsights={generateInsights}
+            isGenerating={isGeneratingInsights}
           />
-        )}
+          
+          {visualization && (
+            <ShareSection 
+              visualization={visualization} 
+              onUpdateTags={updateVisualizationTags}
+            />
+          )}
+        </div>
       </div>
 
       {/* Right Panel: Chat Interface */}
-      <div className="w-full md:w-1/2 flex flex-col h-screen md:h-auto mobile-full">
+      <div className="w-full md:w-1/2 flex flex-col h-[50vh] md:h-screen">
         <ChatHeader />
         
         <ChatMessages messages={messages} isTyping={isTyping} />
