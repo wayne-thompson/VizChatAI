@@ -62,13 +62,16 @@ export class MemStorage implements IStorage {
   async createVisualization(visualization: InsertVisualization): Promise<Visualization> {
     const id = this.visualizationCurrentId++;
     const shareId = visualization.shareId || uuidv4();
-    const createdAt = new Date();
+    const now = new Date();
     
     const newVisualization: Visualization = {
       ...visualization,
       id,
       shareId,
-      createdAt,
+      createdAt: now,
+      updatedAt: now,
+      analysis: visualization.analysis || null,
+      insights: visualization.insights || null
     };
     
     this.visualizations.set(id, newVisualization);
@@ -190,7 +193,8 @@ export class DatabaseStorage implements IStorage {
       .delete(visualizations)
       .where(eq(visualizations.id, id));
     
-    return result.count > 0;
+    // PostgreSQL returns rowCount for deleted rows
+    return result.rowCount > 0;
   }
 
   // Message methods
