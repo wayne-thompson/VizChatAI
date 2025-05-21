@@ -53,8 +53,8 @@ export default function Layout({ children }: LayoutProps) {
               onClick={() => triggerFileSelector()} 
               className="hidden md:flex items-center bg-primary text-white px-4 py-2 rounded-md hover:bg-primary/90 transition-colors"
             >
-              <i className="fas fa-upload mr-2"></i>
-              Upload Visualization
+              <i className="fas fa-plus mr-2"></i>
+              New
             </button>
             <button className="md:hidden text-gray-600">
               <i className="fas fa-bars text-xl"></i>

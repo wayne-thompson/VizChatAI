@@ -67,7 +67,7 @@ export default function UploadSection({ onUpload, isUploading }: UploadSectionPr
   
   return (
     <div id="upload-section" className="mb-6">
-      <h2 className="text-lg font-semibold mb-3">Upload Visualization</h2>
+      <h2 className="text-lg font-semibold mb-3">Upload Image</h2>
       <p className="text-sm text-gray-500 mb-4">Upload a chart or graph image to analyze</p>
       
       <div 
