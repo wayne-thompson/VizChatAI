@@ -12,7 +12,7 @@ import PreviewSection from "@/components/PreviewSection";
 import ShareSection from "@/components/ShareSection";
 import { useChat } from "@/hooks/useChat";
 import { useSharing } from "@/hooks/useSharing";
-import { useUpload } from "@/components/Layout";
+import { useUpload } from "../components/Layout";
 
 export default function VisualizationDetail() {
   const [, setLocation] = useLocation();
