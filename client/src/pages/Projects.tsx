@@ -91,7 +91,7 @@ export default function Projects() {
               <CardContent>
                 <div className="h-40 bg-gray-100 rounded-md mb-4 overflow-hidden">
                   <img 
-                    src={`data:image/jpeg;base64,${viz.imageBase64}`} 
+                    src={viz.imageBase64} 
                     alt={viz.title || "Visualization"} 
                     className="w-full h-full object-contain"
                   />
