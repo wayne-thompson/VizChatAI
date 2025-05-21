@@ -37,6 +37,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/health", (req: Request, res: Response) => {
     res.json({ status: "ok" });
   });
+  
+  // Get all visualizations
+  app.get("/api/visualizations", async (req: Request, res: Response) => {
+    try {
+      const visualizations = await storage.getAllVisualizations();
+      res.json(visualizations);
+    } catch (error) {
+      console.error("Error fetching all visualizations:", error);
+      res.status(500).json({ message: "Error fetching visualizations" });
+    }
+  });
 
   // Upload a visualization image and get initial summary
   app.post("/api/visualizations", upload.single("image"), async (req: Request, res: Response) => {

@@ -207,6 +207,14 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  // Get all visualizations
+  async getAllVisualizations(): Promise<Visualization[]> {
+    return await db
+      .select()
+      .from(visualizations)
+      .orderBy(desc(visualizations.createdAt));
+  }
+  
   // Message methods
   async createMessage(message: InsertMessage): Promise<Message> {
     const [newMessage] = await db.insert(messages).values(message).returning();
