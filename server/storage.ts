@@ -196,9 +196,20 @@ export class DatabaseStorage implements IStorage {
 
   async deleteVisualization(id: number): Promise<boolean> {
     try {
+      // First delete all messages associated with this visualization
+      // to avoid foreign key constraint violations
+      await db
+        .delete(messages)
+        .where(eq(messages.visualizationId, id));
+      
+      console.log(`Deleted messages for visualization ${id}`);
+      
+      // Then delete the visualization itself
       await db
         .delete(visualizations)
         .where(eq(visualizations.id, id));
+      
+      console.log(`Deleted visualization ${id}`);
       
       return true;
     } catch (error) {
