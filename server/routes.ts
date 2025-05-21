@@ -98,13 +98,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       try {
-        // Import our simple responses module
-        const { getVisualizationAnalysis } = await import('./simple-responses');
+        // Import our OpenAI module
+        const { analyzeVisualization } = await import('./direct-openai');
         
-        console.log("Generating analysis for visualization:", id);
+        console.log("Analyzing visualization with OpenAI:", id);
         
-        // Get analysis for the visualization
-        const result = getVisualizationAnalysis();
+        // Get analysis from OpenAI for the actual visualization
+        const result = await analyzeVisualization(visualization.imageBase64);
+        console.log("Received analysis from OpenAI");
         
         // Update visualization with initial summary
         const updatedVisualization = await storage.updateVisualization(id, {
@@ -249,14 +250,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       try {
-        // Import our simple responses module
-        const { getChatResponse } = await import('./simple-responses');
+        // Import our OpenAI module
+        const { getVisualizationChatResponse } = await import('./direct-openai');
         
-        console.log("Generating chat response for user message:", req.body.content);
+        console.log("Processing chat with OpenAI for visualization:", id);
         
-        // Get a response from our predefined responses based on the message
-        const responseText = getChatResponse(req.body.content);
-        console.log("Generated response for chat message");
+        // Format previous messages for the API
+        const chatHistory = messages
+          .slice(0, -1) // Exclude the message we just saved
+          .map(msg => ({
+            role: msg.role,
+            content: msg.content
+          }));
+        
+        // Get response from OpenAI that analyzes the actual visualization
+        const responseText = await getVisualizationChatResponse(
+          visualization.imageBase64,
+          req.body.content,
+          chatHistory
+        );
+        
+        console.log("Received response from OpenAI");
 
         // Save assistant response
         const assistantMessage = await storage.createMessage({
