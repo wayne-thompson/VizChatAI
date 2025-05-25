@@ -113,6 +113,7 @@ export default function ShareSection({ visualization, onUpdateTags }: ShareSecti
           <Button 
             className="bg-gray-100 border border-gray-300 border-l-0 rounded-r-md px-3 py-2 hover:bg-gray-200"
             onClick={() => window.open(shareUrl, '_blank')}
+            type="button"
           >
             <i className="fas fa-external-link-alt text-gray-500"></i>
           </Button>
@@ -127,7 +128,7 @@ export default function ShareSection({ visualization, onUpdateTags }: ShareSecti
             id="copy-report-link-btn" 
             variant="ghost"
             className="text-primary hover:text-primary/80 text-sm font-medium h-7 px-2"
-            onClick={() => handleCopyLink(reportUrl, "Static report")}
+            onClick={handleCopyReportLink}
           >
             <i className="fas fa-copy mr-1"></i>
             Copy
@@ -143,6 +144,7 @@ export default function ShareSection({ visualization, onUpdateTags }: ShareSecti
           <Button 
             className="bg-gray-100 border border-gray-300 border-l-0 rounded-r-md px-3 py-2 hover:bg-gray-200"
             onClick={() => window.open(reportUrl, '_blank')}
+            type="button"
           >
             <i className="fas fa-external-link-alt text-gray-500"></i>
           </Button>
