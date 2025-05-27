@@ -1,13 +1,19 @@
 import { Link, useLocation } from "wouter";
 import React, { useRef } from "react";
+import { Download } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface LayoutProps {
   children: React.ReactNode;
 }
 
 export default function Layout({ children }: LayoutProps) {
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
+  
+  // Check if we're on a report page
+  const isReportPage = location.startsWith('/report/');
   
   const handleNewClick = () => {
     // Open file browser dialog directly
@@ -58,6 +64,16 @@ export default function Layout({ children }: LayoutProps) {
     }
   };
 
+  const handleDownloadPDF = () => {
+    toast({
+      title: "Downloading PDF",
+      description: "Opening print dialog to save as PDF",
+    });
+    
+    // Trigger the browser's print dialog which allows saving as PDF
+    window.print();
+  };
+
   return (
     <div className="flex flex-col min-h-screen">
       {/* Hidden file input for New button */}
@@ -94,13 +110,23 @@ export default function Layout({ children }: LayoutProps) {
         </nav>
         
         <div className="flex items-center space-x-4">
-          <button
-            onClick={handleNewClick}
-            className="hidden md:flex items-center bg-primary text-white px-4 py-2 rounded-md hover:bg-primary/90 transition-colors"
-          >
-            <i className="fas fa-plus mr-2"></i>
-            New
-          </button>
+          {isReportPage ? (
+            <button
+              onClick={handleDownloadPDF}
+              className="hidden md:flex items-center bg-primary text-white px-4 py-2 rounded-md hover:bg-primary/90 transition-colors"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Download PDF
+            </button>
+          ) : (
+            <button
+              onClick={handleNewClick}
+              className="hidden md:flex items-center bg-primary text-white px-4 py-2 rounded-md hover:bg-primary/90 transition-colors"
+            >
+              <i className="fas fa-plus mr-2"></i>
+              New
+            </button>
+          )}
           <button className="md:hidden text-gray-600">
             <i className="fas fa-bars text-xl"></i>
           </button>
