@@ -2,14 +2,18 @@ import { useEffect, useState } from "react";
 import { useRoute } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import { Visualization, Message } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow } from "date-fns";
+import { Download } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function StaticReport() {
   const [, params] = useRoute<{ shareId: string }>("/report/:shareId");
   const [summary, setSummary] = useState<{ summary: string; points: string[] } | null>(null);
+  const { toast } = useToast();
   
   // Fetch the shared visualization data
   const { data, isLoading, error } = useQuery({
@@ -37,6 +41,16 @@ export default function StaticReport() {
       document.title = "Data Visualization Report - VizChat";
     }
   }, [data]);
+
+  const handleDownloadPDF = () => {
+    toast({
+      title: "Downloading PDF",
+      description: "Opening print dialog to save as PDF",
+    });
+    
+    // Trigger the browser's print dialog which allows saving as PDF
+    window.print();
+  };
   
   if (isLoading) {
     return (
@@ -74,12 +88,23 @@ export default function StaticReport() {
       <div className="container mx-auto max-w-4xl px-4">
         {/* Report Header - Card style */}
         <div className="bg-white rounded-lg border border-gray-200 p-6 mb-8 shadow-sm">
-          <h1 className="text-3xl font-bold mb-2 text-gray-900">{visualization.title || "Untitled Visualization"}</h1>
-          <div className="flex items-center text-gray-500 mb-4">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <span>Generated {formatDistanceToNow(new Date(visualization.createdAt), { addSuffix: true })}</span>
+          <div className="flex justify-between items-start mb-4">
+            <div className="flex-1">
+              <h1 className="text-3xl font-bold mb-2 text-gray-900">{visualization.title || "Untitled Visualization"}</h1>
+              <div className="flex items-center text-gray-500">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>Generated {formatDistanceToNow(new Date(visualization.createdAt), { addSuffix: true })}</span>
+              </div>
+            </div>
+            <Button 
+              onClick={handleDownloadPDF}
+              className="bg-primary text-white hover:bg-primary/90 flex items-center gap-2"
+            >
+              <Download className="h-4 w-4" />
+              Download PDF
+            </Button>
           </div>
           {visualization.description && (
             <p className="text-gray-700 mb-4 max-w-3xl">{visualization.description}</p>
