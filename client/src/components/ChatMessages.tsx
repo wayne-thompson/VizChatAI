@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { Message } from "@shared/schema";
 import { cn } from "@/lib/utils";
+import dataVizardImage from "@/assets/datawizard.png";
 
 interface ChatMessagesProps {
   messages: Message[];
@@ -24,8 +25,12 @@ export default function ChatMessages({ messages, isTyping }: ChatMessagesProps) 
         )}>
           {message.role === "assistant" && (
             <div className="flex-shrink-0 mr-3">
-              <div className="h-8 w-8 rounded-full bg-primary-100 flex items-center justify-center">
-                <i className="fas fa-robot text-primary text-sm"></i>
+              <div className="h-8 w-8 rounded-full bg-primary-100 flex items-center justify-center overflow-hidden">
+                <img 
+                  src={dataVizardImage} 
+                  alt="Data Vizard" 
+                  className="h-6 w-6 object-contain"
+                />
               </div>
             </div>
           )}
@@ -52,8 +57,12 @@ export default function ChatMessages({ messages, isTyping }: ChatMessagesProps) 
       {isTyping && (
         <div className="flex items-start mb-4">
           <div className="flex-shrink-0 mr-3">
-            <div className="h-8 w-8 rounded-full bg-primary-100 flex items-center justify-center">
-              <i className="fas fa-robot text-primary text-sm"></i>
+            <div className="h-8 w-8 rounded-full bg-primary-100 flex items-center justify-center overflow-hidden">
+              <img 
+                src={dataVizardImage} 
+                alt="Data Vizard" 
+                className="h-6 w-6 object-contain"
+              />
             </div>
           </div>
           <div className="chat-message viz-message p-3 rounded-lg shadow-sm bg-gray-100">
