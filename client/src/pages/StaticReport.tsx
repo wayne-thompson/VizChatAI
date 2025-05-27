@@ -70,28 +70,28 @@ export default function StaticReport() {
   const { visualization, messages } = data;
   
   return (
-    <div className="bg-gray-50 min-h-screen pb-10">
-      {/* Report Header - Banner style */}
-      <div className="bg-primary text-white py-8 px-4 mb-8 shadow-md">
-        <div className="container mx-auto max-w-4xl">
-          <h1 className="text-3xl font-bold mb-2">{visualization.title || "Untitled Visualization"}</h1>
-          <div className="flex items-center text-white/80 mb-4">
+    <div className="bg-gray-50 min-h-screen py-8">
+      <div className="container mx-auto max-w-4xl px-4">
+        {/* Report Header - Card style */}
+        <div className="bg-white rounded-lg border border-gray-200 p-6 mb-8 shadow-sm">
+          <h1 className="text-3xl font-bold mb-2 text-gray-900">{visualization.title || "Untitled Visualization"}</h1>
+          <div className="flex items-center text-gray-500 mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
             <span>Generated {formatDistanceToNow(new Date(visualization.createdAt), { addSuffix: true })}</span>
           </div>
           {visualization.description && (
-            <p className="text-white/90 mb-4 max-w-3xl">{visualization.description}</p>
+            <p className="text-gray-700 mb-4 max-w-3xl">{visualization.description}</p>
           )}
           {visualization.tags && visualization.tags.length > 0 && (
             <div className="flex flex-wrap gap-2 mt-3">
               {visualization.tags.map((tag, i) => (
-                <Badge key={i} variant="secondary" className="bg-white/20 hover:bg-white/30">{tag}</Badge>
+                <Badge key={i} variant="secondary">{tag}</Badge>
               ))}
             </div>
           )}
         </div>
-      </div>
-      
-      <div className="container mx-auto max-w-4xl px-4">
         {/* Visualization Image */}
         <div className="bg-white rounded-lg border border-gray-200 p-6 mb-8 shadow-sm">
           <h2 className="text-xl font-semibold mb-4 flex items-center">
