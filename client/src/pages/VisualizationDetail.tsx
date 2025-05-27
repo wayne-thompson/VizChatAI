@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRoute, useLocation } from "wouter";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -10,6 +10,7 @@ import ChatMessages from "@/components/ChatMessages";
 import ChatInput from "@/components/ChatInput";
 import PreviewSection from "@/components/PreviewSection";
 import ShareSection from "@/components/ShareSection";
+import ExportSection from "@/components/ExportSection";
 import { useChat } from "@/hooks/useChat";
 import { useSharing } from "@/hooks/useSharing";
 
@@ -158,6 +159,12 @@ export default function VisualizationDetail() {
           <ShareSection 
             visualization={visualization} 
             onUpdateTags={updateVisualizationTags}
+          />
+          
+          <ExportSection 
+            visualization={visualization}
+            messages={messages}
+            summary={summary}
           />
         </div>
       </div>
