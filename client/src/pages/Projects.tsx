@@ -75,7 +75,7 @@ export default function Projects() {
   if (isLoading) {
     return (
       <div className="container mx-auto py-8 px-4">
-        <h1 className="text-2xl font-bold mb-8">My Projects</h1>
+        <h1 className="text-2xl font-bold mb-8">Archive</h1>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3, 4].map((i) => (
             <Card key={i} className="overflow-hidden">
@@ -116,7 +116,7 @@ export default function Projects() {
   return (
     <div className="container mx-auto py-8 px-4">
       <header className="flex justify-between items-center mb-8">
-        <h1 className="text-2xl font-bold">My Projects</h1>
+        <h1 className="text-2xl font-bold">Archive</h1>
         <Link href="/">
           <Button>
             <i className="fas fa-plus mr-2"></i>

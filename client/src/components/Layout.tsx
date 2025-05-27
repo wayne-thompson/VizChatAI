@@ -100,12 +100,8 @@ export default function Layout({ children }: LayoutProps) {
             Home
           </Link>
           <Link href="/projects" className="text-gray-700 hover:text-primary font-medium flex items-center">
-            <i className="fas fa-folder mr-2"></i>
-            Projects
-          </Link>
-          <Link href="/shared" className="text-gray-700 hover:text-primary font-medium flex items-center">
-            <i className="fas fa-share-alt mr-2"></i>
-            Shared
+            <i className="fas fa-archive mr-2"></i>
+            Archive
           </Link>
         </nav>
         
