@@ -176,8 +176,7 @@ export default function PreviewSection({
         {visualizations.length > 1 ? (
           <div className="space-y-6">
             {visualizations.map((viz, index) => (
-              <div key={viz.id} className="space-y-2">
-                <h4 className="text-sm font-medium text-gray-600">Chart {index + 1}</h4>
+              <div key={viz.id}>
                 <img 
                   src={viz.imageBase64} 
                   alt={`Visualization ${index + 1}`} 
@@ -216,7 +215,8 @@ export default function PreviewSection({
                     <li key={index}>
                       {typeof point === 'string' ? point : 
                        typeof point === 'object' && point && 'content' in point ? (point as any).content :
-                       JSON.stringify(point)}
+                       typeof point === 'object' ? String(point).replace(/[{}]/g, '') :
+                       String(point)}
                     </li>
                   ))}
                 </ul>
