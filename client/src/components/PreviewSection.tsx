@@ -198,7 +198,11 @@ export default function PreviewSection({
               {summaryData.points && summaryData.points.length > 0 && (
                 <ul className="list-disc pl-5 mt-2 space-y-1">
                   {summaryData.points.map((point, index) => (
-                    <li key={index}>{point}</li>
+                    <li key={index}>
+                      {typeof point === 'string' ? point : 
+                       typeof point === 'object' && point.content ? point.content :
+                       JSON.stringify(point)}
+                    </li>
                   ))}
                 </ul>
               )}
