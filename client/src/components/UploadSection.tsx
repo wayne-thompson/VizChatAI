@@ -6,40 +6,52 @@ import { useToast } from '@/hooks/use-toast';
 import type { MouseEvent } from 'react';
 
 interface UploadSectionProps {
-  onUpload: (file: File) => Promise<Visualization>;
+  onUpload: (files: File[]) => Promise<Visualization[]>;
   isUploading: boolean;
 }
 
 export default function UploadSection({ onUpload, isUploading }: UploadSectionProps) {
   const { toast } = useToast();
   const [isDragActive, setIsDragActive] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (acceptedFiles.length === 0) return;
     
-    const file = acceptedFiles[0];
-    const fileSize = file.size / 1024 / 1024; // size in MB
-    
-    if (fileSize > 5) {
+    // Validate file sizes
+    const invalidFiles = acceptedFiles.filter(file => file.size / 1024 / 1024 > 5);
+    if (invalidFiles.length > 0) {
       toast({
         variant: "destructive",
         title: "File too large",
-        description: "Maximum file size is 5MB",
+        description: "Maximum file size is 5MB per file",
       });
       return;
     }
     
+    // Add files to selection (allow multiple)
+    setSelectedFiles(prev => [...prev, ...acceptedFiles]);
+  }, [toast]);
+  
+  const removeFile = useCallback((index: number) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+  }, []);
+  
+  const handleUpload = useCallback(async () => {
+    if (selectedFiles.length === 0) return;
+    
     try {
-      await onUpload(file);
+      await onUpload(selectedFiles);
+      setSelectedFiles([]);
     } catch (error) {
       toast({
         variant: "destructive",
         title: "Upload failed",
-        description: error instanceof Error ? error.message : "Failed to upload image",
+        description: error instanceof Error ? error.message : "Failed to upload images",
       });
     }
-  }, [onUpload, toast]);
+  }, [onUpload, selectedFiles, toast]);
   
   // Create a function to handle file selection
   const handleFileSelection = useCallback((e?: MouseEvent) => {
@@ -81,10 +93,11 @@ export default function UploadSection({ onUpload, isUploading }: UploadSectionPr
           ref={fileInputRef}
           style={{ display: 'none' }}
           accept="image/jpeg,image/png"
+          multiple
           onChange={(e) => {
             const files = e.target.files;
             if (files && files.length > 0) {
-              onDrop([files[0]]);
+              onDrop(Array.from(files));
               e.target.value = '';
             }
           }}
@@ -94,10 +107,10 @@ export default function UploadSection({ onUpload, isUploading }: UploadSectionPr
         </div>
         <p className="text-sm font-medium text-gray-700 mb-1">
           {isDragActive 
-            ? "Drop your file here..."
+            ? "Drop your files here..."
             : isDragReject
               ? "Unsupported file type"
-              : "Drag and drop your file here"
+              : "Drag and drop your files here"
           }
         </p>
         <p className="text-xs text-gray-500 mb-3">or</p>
@@ -116,8 +129,55 @@ export default function UploadSection({ onUpload, isUploading }: UploadSectionPr
             "Browse Files"
           )}
         </Button>
-        <p className="text-xs text-gray-500 mt-2">Supports JPG, PNG (max 5MB)</p>
+        <p className="text-xs text-gray-500 mt-2">Supports JPG, PNG (max 5MB each) • Upload multiple files for comprehensive analysis</p>
       </div>
+      
+      {/* Selected Files Preview */}
+      {selectedFiles.length > 0 && (
+        <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+          <h3 className="text-sm font-medium text-gray-700 mb-3">
+            Selected Files ({selectedFiles.length})
+          </h3>
+          <div className="space-y-2 mb-4">
+            {selectedFiles.map((file, index) => (
+              <div key={index} className="flex items-center justify-between p-2 bg-white rounded border">
+                <div className="flex items-center space-x-2">
+                  <i className="fas fa-image text-gray-400"></i>
+                  <span className="text-sm text-gray-700">{file.name}</span>
+                  <span className="text-xs text-gray-500">
+                    ({(file.size / 1024 / 1024).toFixed(1)} MB)
+                  </span>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => removeFile(index)}
+                  className="text-red-500 hover:text-red-700"
+                >
+                  <i className="fas fa-times"></i>
+                </Button>
+              </div>
+            ))}
+          </div>
+          <Button
+            onClick={handleUpload}
+            disabled={isUploading}
+            className="w-full"
+          >
+            {isUploading ? (
+              <>
+                <i className="fas fa-spinner fa-spin mr-2"></i>
+                Analyzing {selectedFiles.length} visualization{selectedFiles.length > 1 ? 's' : ''}...
+              </>
+            ) : (
+              <>
+                Upload & Analyze {selectedFiles.length} visualization{selectedFiles.length > 1 ? 's' : ''}
+              </>
+            )}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

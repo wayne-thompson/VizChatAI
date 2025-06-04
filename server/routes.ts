@@ -49,6 +49,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Upload multiple visualization images as a project
+  app.post("/api/visualizations/multi", upload.array("images", 10), async (req: Request, res: Response) => {
+    try {
+      const files = req.files as Express.Multer.File[];
+      
+      if (!files || files.length === 0) {
+        return res.status(400).json({ message: "No image files provided" });
+      }
+
+      // Convert files to visualizations
+      const visualizationData = files.map((file, index) => {
+        const base64Image = file.buffer.toString("base64");
+        const mimeType = file.mimetype;
+        const dataUrl = `data:${mimeType};base64,${base64Image}`;
+        
+        return {
+          userId: null,
+          title: `Chart ${index + 1}`,
+          description: `Uploaded visualization ${index + 1}`,
+          imageBase64: dataUrl,
+          initialSummary: "",
+          shareId: uuidv4(),
+          tags: req.body.tags ? req.body.tags.split(",") : [],
+        };
+      });
+
+      // Create all visualizations as a project group
+      const visualizations = await storage.createMultipleVisualizations(visualizationData);
+      
+      res.status(201).json(visualizations);
+    } catch (error) {
+      console.error("Error uploading multiple visualizations:", error);
+      res.status(500).json({ message: "Error uploading visualizations" });
+    }
+  });
+
   // Upload a visualization image and get initial summary
   app.post("/api/visualizations", upload.single("image"), async (req: Request, res: Response) => {
     try {
@@ -79,6 +115,109 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error uploading visualization:", error);
       res.status(500).json({ message: "Error uploading visualization" });
+    }
+  });
+
+  // Analyze multiple visualizations as a project
+  app.post("/api/visualizations/project/:projectGroup/analyze", async (req: Request, res: Response) => {
+    try {
+      const projectGroup = req.params.projectGroup;
+      const visualizations = await storage.getVisualizationsByProjectGroup(projectGroup);
+      
+      if (!visualizations || visualizations.length === 0) {
+        return res.status(404).json({ message: "Project visualizations not found" });
+      }
+
+      // Check if OpenAI API key is available
+      if (!process.env.OPENAI_API_KEY) {
+        return res.status(500).json({ message: "OpenAI API key not configured" });
+      }
+
+      try {
+        // Import our OpenAI module
+        const { analyzeVisualization } = await import('./direct-openai');
+        
+        console.log("Analyzing project with multiple visualizations:", projectGroup);
+        
+        // Analyze each visualization individually first
+        const individualAnalyses = [];
+        for (const viz of visualizations) {
+          const analysis = await analyzeVisualization(viz.imageBase64);
+          individualAnalyses.push({
+            title: viz.title || `Chart ${viz.id}`,
+            analysis
+          });
+        }
+        
+        // Generate comprehensive project analysis
+        const comprehensivePrompt = `
+          I have analyzed ${visualizations.length} related business visualizations. Here are the individual analyses:
+          
+          ${individualAnalyses.map((item, i) => `
+          Chart ${i + 1} (${item.title}):
+          ${item.analysis.summary}
+          Key Points: ${item.analysis.points.join(', ')}
+          `).join('\n')}
+          
+          Please provide a comprehensive business analysis that looks at the bigger picture across all these visualizations. Focus on:
+          1. Overall business health and performance
+          2. Key relationships and correlations between the different metrics
+          3. Strategic insights and recommendations
+          4. Areas of concern or opportunity
+          
+          Provide the response as a JSON object with 'summary' and 'points' fields.
+        `;
+
+        const comprehensiveResponse = await openai.chat.completions.create({
+          model: "gpt-4o",
+          messages: [
+            {
+              role: "system",
+              content: "You are Data Vizard, an expert business analyst. Analyze multiple related visualizations to provide comprehensive business insights."
+            },
+            {
+              role: "user",
+              content: comprehensivePrompt
+            }
+          ],
+          response_format: { type: "json_object" },
+        });
+
+        const comprehensiveAnalysis = JSON.parse(comprehensiveResponse.choices[0].message.content || '{}');
+        
+        // Update all visualizations with project analysis
+        for (const viz of visualizations) {
+          await storage.updateVisualization(viz.id, {
+            initialSummary: JSON.stringify(comprehensiveAnalysis)
+          });
+        }
+
+        // Create welcome message for the first visualization (as chat entry point)
+        await storage.createMessage({
+          visualizationId: visualizations[0].id,
+          role: "assistant",
+          content: "Hi there! I'm Data Vizard, your business analysis assistant. I've analyzed all your visualizations together to give you comprehensive insights about your business. Feel free to ask me any questions about the patterns, trends, or strategic implications I've discovered!"
+        });
+
+        // Create comprehensive analysis message
+        await storage.createMessage({
+          visualizationId: visualizations[0].id,
+          role: "assistant",
+          content: `I've analyzed your ${visualizations.length} visualizations together! ${comprehensiveAnalysis.summary} Would you like me to dive deeper into any specific area or relationship between your data?`
+        });
+
+        res.json({ 
+          visualizations,
+          summary: comprehensiveAnalysis,
+          projectGroup
+        });
+      } catch (error) {
+        console.error("OpenAI API error:", error);
+        res.status(500).json({ message: "Error analyzing visualizations with AI" });
+      }
+    } catch (error) {
+      console.error("Error analyzing project:", error);
+      res.status(500).json({ message: "Error analyzing project" });
     }
   });
 

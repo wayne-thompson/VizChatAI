@@ -14,10 +14,11 @@ export const insertUserSchema = createInsertSchema(users).pick({
   password: true,
 });
 
-// Visualizations schema
+// Visualizations schema - adding project grouping field
 export const visualizations = pgTable("visualizations", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => users.id),
+  projectGroup: text("project_group"), // Groups related visualizations together
   title: text("title"),
   description: text("description"),
   imageBase64: text("image_base64").notNull(),

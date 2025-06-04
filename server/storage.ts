@@ -14,8 +14,10 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   
   createVisualization(visualization: InsertVisualization): Promise<Visualization>;
+  createMultipleVisualizations(visualizations: InsertVisualization[]): Promise<Visualization[]>;
   getVisualization(id: number): Promise<Visualization | undefined>;
   getVisualizationByShareId(shareId: string): Promise<Visualization | undefined>;
+  getVisualizationsByProjectGroup(projectGroup: string): Promise<Visualization[]>;
   updateVisualization(id: number, data: Partial<Visualization>): Promise<Visualization | undefined>;
   deleteVisualization(id: number): Promise<boolean>;
   
@@ -67,6 +69,7 @@ export class MemStorage implements IStorage {
     const newVisualization: Visualization = {
       id,
       userId: visualization.userId ?? null,
+      projectGroup: visualization.projectGroup ?? null,
       title: visualization.title ?? null,
       description: visualization.description ?? null,
       imageBase64: visualization.imageBase64,
@@ -82,6 +85,25 @@ export class MemStorage implements IStorage {
     
     this.visualizations.set(id, newVisualization);
     return newVisualization;
+  }
+
+  async createMultipleVisualizations(visualizations: InsertVisualization[]): Promise<Visualization[]> {
+    const results: Visualization[] = [];
+    const projectGroup = uuidv4(); // Generate unique project group ID
+    
+    for (const viz of visualizations) {
+      const vizWithProject = { ...viz, projectGroup };
+      const created = await this.createVisualization(vizWithProject);
+      results.push(created);
+    }
+    
+    return results;
+  }
+
+  async getVisualizationsByProjectGroup(projectGroup: string): Promise<Visualization[]> {
+    return Array.from(this.visualizations.values()).filter(
+      (viz) => viz.projectGroup === projectGroup
+    );
   }
 
   async getVisualization(id: number): Promise<Visualization | undefined> {
@@ -167,6 +189,27 @@ export class DatabaseStorage implements IStorage {
     
     const [newVisualization] = await db.insert(visualizations).values(vizWithDates).returning();
     return newVisualization;
+  }
+
+  async createMultipleVisualizations(visualizations: InsertVisualization[]): Promise<Visualization[]> {
+    const results: Visualization[] = [];
+    const projectGroup = uuidv4(); // Generate unique project group ID
+    
+    for (const viz of visualizations) {
+      const vizWithProject = { ...viz, projectGroup };
+      const created = await this.createVisualization(vizWithProject);
+      results.push(created);
+    }
+    
+    return results;
+  }
+
+  async getVisualizationsByProjectGroup(projectGroup: string): Promise<Visualization[]> {
+    return await db
+      .select()
+      .from(visualizations)
+      .where(eq(visualizations.projectGroup, projectGroup))
+      .orderBy(visualizations.createdAt);
   }
 
   async getVisualization(id: number): Promise<Visualization | undefined> {

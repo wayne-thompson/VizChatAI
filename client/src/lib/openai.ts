@@ -14,9 +14,49 @@ export interface AnalysisResult {
   };
 }
 
+export interface ProjectAnalysisResult {
+  visualizations: Visualization[];
+  summary: {
+    summary: string;
+    points: string[];
+  };
+  projectGroup: string;
+}
+
 export interface MessageResponse {
   userMessage: Message;
   assistantMessage: Message;
+}
+
+// Upload multiple visualization images as a project
+export async function uploadMultipleVisualizations(files: File[], tags?: string[]): Promise<Visualization[]> {
+  const formData = new FormData();
+  
+  files.forEach(file => {
+    formData.append('images', file);
+  });
+  
+  if (tags && tags.length > 0) {
+    formData.append('tags', tags.join(','));
+  }
+  
+  try {
+    const response = await fetch('/api/visualizations/multi', {
+      method: 'POST',
+      body: formData,
+      credentials: 'include',
+    });
+    
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(`${response.status}: ${text || response.statusText}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error("Error uploading multiple visualizations:", error);
+    throw new Error("Failed to upload visualizations. Please try again.");
+  }
 }
 
 // Upload a visualization image
@@ -52,6 +92,18 @@ export async function uploadVisualization(file: File, title?: string, descriptio
   } catch (error) {
     console.error("Error uploading visualization:", error);
     throw new Error("Failed to upload visualization. Please try again.");
+  }
+}
+
+// Analyze multiple visualizations as a project
+export async function analyzeProject(projectGroup: string): Promise<ProjectAnalysisResult> {
+  try {
+    return await apiRequest(`/api/visualizations/project/${projectGroup}/analyze`, {
+      method: 'POST'
+    });
+  } catch (error) {
+    console.error("Error analyzing project:", error);
+    throw new Error("Failed to analyze project. Please try again.");
   }
 }
 
