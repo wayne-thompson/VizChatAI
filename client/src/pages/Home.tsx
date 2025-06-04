@@ -54,6 +54,7 @@ export default function Home() {
             <>
               <PreviewSection 
                 visualization={visualization} 
+                visualizations={visualizations}
                 summary={summary}
                 onGenerateInsights={generateInsights}
                 isGenerating={isGeneratingInsights}

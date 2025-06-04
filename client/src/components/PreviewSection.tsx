@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 
 interface PreviewSectionProps {
   visualization: Visualization | null;
+  visualizations?: Visualization[];
   summary: { summary: string; points: string[] } | null;
   onGenerateInsights: () => Promise<void>;
   isGenerating: boolean;
@@ -15,6 +16,7 @@ interface PreviewSectionProps {
 
 export default function PreviewSection({ 
   visualization, 
+  visualizations = [],
   summary, 
   onGenerateInsights, 
   isGenerating 
@@ -63,7 +65,7 @@ export default function PreviewSection({
     
     // Don't save empty titles
     if (!title.trim()) {
-      setTitle(visualization.title);
+      setTitle(visualization.title || 'Untitled Visualization');
       setIsEditingTitle(false);
       return;
     }
@@ -171,7 +173,20 @@ export default function PreviewSection({
       </div>
       
       <div className="preview-container overflow-y-auto bg-white rounded-lg border border-gray-200 p-4">
-        {visualization.imageBase64 ? (
+        {visualizations.length > 1 ? (
+          <div className="space-y-6">
+            {visualizations.map((viz, index) => (
+              <div key={viz.id} className="space-y-2">
+                <h4 className="text-sm font-medium text-gray-600">Chart {index + 1}</h4>
+                <img 
+                  src={viz.imageBase64} 
+                  alt={`Visualization ${index + 1}`} 
+                  className="mx-auto max-h-[320px] w-auto object-contain rounded" 
+                />
+              </div>
+            ))}
+          </div>
+        ) : visualization?.imageBase64 ? (
           <img 
             src={visualization.imageBase64} 
             alt="Uploaded visualization" 
@@ -183,7 +198,7 @@ export default function PreviewSection({
       </div>
       
       <div className="mt-4 bg-white rounded-lg border border-gray-200 p-4">
-        <h3 className="font-medium mb-2 text-gray-800">Initial Summary</h3>
+        <h3 className="font-medium mb-2 text-gray-800">Summary</h3>
         <div id="ai-summary" className="text-sm text-gray-600">
           {isGenerating ? (
             <div className="flex space-x-1 items-center">
@@ -200,7 +215,7 @@ export default function PreviewSection({
                   {summaryData.points.map((point, index) => (
                     <li key={index}>
                       {typeof point === 'string' ? point : 
-                       typeof point === 'object' && point.content ? point.content :
+                       typeof point === 'object' && point && 'content' in point ? (point as any).content :
                        JSON.stringify(point)}
                     </li>
                   ))}
