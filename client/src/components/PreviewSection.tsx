@@ -5,6 +5,7 @@ import { Visualization } from '@shared/schema';
 import { AnalysisResult } from '@/lib/openai';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
+import { useLocation } from 'wouter';
 
 interface PreviewSectionProps {
   visualization: Visualization | null;
@@ -22,10 +23,12 @@ export default function PreviewSection({
   isGenerating 
 }: PreviewSectionProps) {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [summaryData, setSummaryData] = useState<{ summary: string; points: string[] } | null>(null);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [title, setTitle] = useState('');
   const [isSavingTitle, setIsSavingTitle] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const titleInputRef = useRef<HTMLInputElement>(null);
   
   useEffect(() => {
@@ -104,6 +107,30 @@ export default function PreviewSection({
       setIsSavingTitle(false);
     }
   };
+
+  const saveReport = async () => {
+    setIsSaving(true);
+    
+    try {
+      // The report is already saved in the database, we just need to show success
+      toast({
+        title: "Report saved",
+        description: "Your analysis has been archived successfully.",
+      });
+      
+      // Navigate back to homepage for fresh upload
+      setLocation('/');
+    } catch (error) {
+      console.error('Error saving report:', error);
+      toast({
+        title: "Error", 
+        description: "Failed to save report. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
   
   // Handle key press events in title input
   const handleTitleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -122,24 +149,44 @@ export default function PreviewSection({
     <div id="preview-section" className="mb-6">
       <div className="flex justify-between items-center mb-3">
         <h2 className="text-lg font-semibold">Visualization Preview</h2>
-        <Button
-          id="generate-insights-btn"
-          onClick={onGenerateInsights}
-          disabled={isGenerating}
-          className="inline-flex items-center px-3 py-1.5 text-sm font-medium"
-        >
-          {isGenerating ? (
-            <>
-              <i className="fas fa-spinner fa-spin mr-1.5"></i>
-              Generating...
-            </>
-          ) : (
-            <>
-              <i className="fas fa-magic mr-1.5"></i>
-              Generate Insights
-            </>
-          )}
-        </Button>
+        <div className="flex space-x-2">
+          <Button
+            id="generate-insights-btn"
+            onClick={onGenerateInsights}
+            disabled={isGenerating}
+            className="inline-flex items-center px-3 py-1.5 text-sm font-medium"
+          >
+            {isGenerating ? (
+              <>
+                <i className="fas fa-spinner fa-spin mr-1.5"></i>
+                Generating...
+              </>
+            ) : (
+              <>
+                <i className="fas fa-magic mr-1.5"></i>
+                Generate Insights
+              </>
+            )}
+          </Button>
+          <Button
+            onClick={saveReport}
+            disabled={isSaving || isGenerating}
+            variant="outline"
+            className="inline-flex items-center px-3 py-1.5 text-sm font-medium"
+          >
+            {isSaving ? (
+              <>
+                <i className="fas fa-spinner fa-spin mr-1.5"></i>
+                Saving...
+              </>
+            ) : (
+              <>
+                <i className="fas fa-save mr-1.5"></i>
+                Save Report
+              </>
+            )}
+          </Button>
+        </div>
       </div>
       
       {/* Editable Title */}
