@@ -185,6 +185,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         const comprehensiveAnalysis = JSON.parse(comprehensiveResponse.choices[0].message.content || '{}');
         
+        // Ensure points is an array of strings
+        if (comprehensiveAnalysis.points && Array.isArray(comprehensiveAnalysis.points)) {
+          comprehensiveAnalysis.points = comprehensiveAnalysis.points.map(point => 
+            typeof point === 'string' ? point : 
+            typeof point === 'object' && point.text ? point.text :
+            typeof point === 'object' && point.content ? point.content :
+            String(point)
+          );
+        }
+        
+        console.log("Comprehensive analysis processed:", comprehensiveAnalysis);
+        
         // Update all visualizations with project analysis
         for (const viz of visualizations) {
           await storage.updateVisualization(viz.id, {
@@ -245,6 +257,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Get analysis from OpenAI for the actual visualization
         const result = await analyzeVisualization(visualization.imageBase64);
         console.log("Received analysis from OpenAI");
+        
+        // Ensure points is an array of strings
+        if (result.points && Array.isArray(result.points)) {
+          result.points = result.points.map(point => 
+            typeof point === 'string' ? point : 
+            typeof point === 'object' && point.text ? point.text :
+            typeof point === 'object' && point.content ? point.content :
+            String(point)
+          );
+        }
         
         // Update visualization with initial summary
         const updatedVisualization = await storage.updateVisualization(id, {
