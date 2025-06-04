@@ -99,7 +99,7 @@ export async function analyzeVisualization(imageBase64: string): Promise<{ summa
       messages: [
         {
           role: "system",
-          content: "You are an expert data visualization analyst. Analyze the chart or graph in the image and provide a concise, insightful summary. Your response should be in JSON format with a 'summary' field containing a paragraph overview and a 'points' array containing 3-5 key observations as bullet points."
+          content: "You are an expert data visualization analyst. Analyze the chart or graph in the image and provide a concise, insightful summary. Your response should be in JSON format with a 'summary' field containing a paragraph overview and a 'points' array containing 3-5 key observations as simple strings (NOT objects)."
         },
         {
           role: "user",

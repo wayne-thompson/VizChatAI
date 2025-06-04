@@ -165,7 +165,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           3. Strategic insights and recommendations
           4. Areas of concern or opportunity
           
-          Provide the response as a JSON object with 'summary' and 'points' fields.
+          Provide the response as a JSON object with:
+          - 'summary': a string containing the main analysis paragraph
+          - 'points': an array of strings, where each string is a complete bullet point (NOT objects)
         `;
 
         const comprehensiveResponse = await openai.chat.completions.create({
@@ -183,16 +185,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
           response_format: { type: "json_object" },
         });
 
-        const comprehensiveAnalysis = JSON.parse(comprehensiveResponse.choices[0].message.content || '{}');
+        const rawResponse = comprehensiveResponse.choices[0].message.content || '{}';
+        console.log("Raw OpenAI response:", rawResponse);
         
-        // Ensure points is an array of strings
+        const comprehensiveAnalysis = JSON.parse(rawResponse);
+        
+        // Ensure points is an array of strings - more aggressive extraction
         if (comprehensiveAnalysis.points && Array.isArray(comprehensiveAnalysis.points)) {
-          comprehensiveAnalysis.points = comprehensiveAnalysis.points.map(point => 
-            typeof point === 'string' ? point : 
-            typeof point === 'object' && point.text ? point.text :
-            typeof point === 'object' && point.content ? point.content :
-            String(point)
-          );
+          comprehensiveAnalysis.points = comprehensiveAnalysis.points.map((point: any) => {
+            if (typeof point === 'string') {
+              return point;
+            }
+            if (typeof point === 'object' && point !== null) {
+              // Try various possible property names
+              if (point.text) return point.text;
+              if (point.content) return point.content;
+              if (point.point) return point.point;
+              if (point.description) return point.description;
+              if (point.insight) return point.insight;
+              // If it's an object with only one property, use that value
+              const keys = Object.keys(point);
+              if (keys.length === 1) {
+                return point[keys[0]];
+              }
+              // Last resort - stringify and clean up
+              return JSON.stringify(point).replace(/[{}]/g, '').replace(/"/g, '');
+            }
+            return String(point);
+          });
         }
         
         console.log("Comprehensive analysis processed:", comprehensiveAnalysis);
@@ -256,16 +276,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Get analysis from OpenAI for the actual visualization
         const result = await analyzeVisualization(visualization.imageBase64);
-        console.log("Received analysis from OpenAI");
+        console.log("Received analysis from OpenAI:", result);
         
-        // Ensure points is an array of strings
+        // Ensure points is an array of strings - more aggressive extraction
         if (result.points && Array.isArray(result.points)) {
-          result.points = result.points.map(point => 
-            typeof point === 'string' ? point : 
-            typeof point === 'object' && point.text ? point.text :
-            typeof point === 'object' && point.content ? point.content :
-            String(point)
-          );
+          result.points = result.points.map((point: any) => {
+            if (typeof point === 'string') {
+              return point;
+            }
+            if (typeof point === 'object' && point !== null) {
+              // Try various possible property names
+              if (point.text) return point.text;
+              if (point.content) return point.content;
+              if (point.point) return point.point;
+              if (point.description) return point.description;
+              if (point.insight) return point.insight;
+              // If it's an object with only one property, use that value
+              const keys = Object.keys(point);
+              if (keys.length === 1) {
+                return point[keys[0]];
+              }
+              // Last resort - stringify and clean up
+              return JSON.stringify(point).replace(/[{}]/g, '').replace(/"/g, '');
+            }
+            return String(point);
+          });
         }
         
         // Update visualization with initial summary
