@@ -98,20 +98,13 @@ export default function Landing() {
                 </Button>
               </div>
             )}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <div className="flex justify-center">
               <Button 
                 size="lg" 
                 className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 text-lg"
                 onClick={() => window.location.href = '/api/login'}
               >
                 Start Analyzing Now
-              </Button>
-              <Button 
-                size="lg" 
-                variant="outline" 
-                className="px-8 py-4 text-lg"
-              >
-                Watch Demo
               </Button>
             </div>
             <p className="text-sm text-gray-500 mt-4">
@@ -197,161 +190,9 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Pricing Section */}
-      <section className="py-20 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Simple, Transparent Pricing
-            </h2>
-            <p className="text-xl text-gray-600">
-              Choose the plan that works best for your needs
-            </p>
-          </div>
-          
-          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            {/* Free Plan */}
-            <div className="bg-white rounded-lg shadow-lg p-8 border border-gray-200">
-              <div className="text-center">
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">Free</h3>
-                <div className="text-4xl font-bold text-gray-900 mb-4">
-                  $0<span className="text-lg text-gray-600">/month</span>
-                </div>
-                <p className="text-gray-600 mb-6">Perfect for trying out VizChat</p>
-                
-                <ul className="text-left space-y-3 mb-8">
-                  <li className="flex items-center">
-                    <Check className="h-5 w-5 text-green-500 mr-3" />
-                    <span>5 chart analyses per month</span>
-                  </li>
-                  <li className="flex items-center">
-                    <Check className="h-5 w-5 text-green-500 mr-3" />
-                    <span>Basic AI insights</span>
-                  </li>
-                  <li className="flex items-center">
-                    <Check className="h-5 w-5 text-green-500 mr-3" />
-                    <span>Chat with your data</span>
-                  </li>
-                </ul>
-                
-                <Button 
-                  className="w-full"
-                  variant="outline"
-                  onClick={() => window.location.href = '/api/login'}
-                >
-                  Get Started Free
-                </Button>
-              </div>
-            </div>
-            
-            {/* Pro Plan */}
-            <div className="bg-white rounded-lg shadow-lg p-8 border-2 border-blue-500 relative">
-              <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                <span className="bg-blue-500 text-white px-4 py-1 rounded-full text-sm font-medium">
-                  Most Popular
-                </span>
-              </div>
-              <div className="text-center">
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">Pro</h3>
-                <div className="text-4xl font-bold text-gray-900 mb-4">
-                  $29<span className="text-lg text-gray-600">/month</span>
-                </div>
-                <p className="text-gray-600 mb-6">For professionals and small teams</p>
-                
-                <ul className="text-left space-y-3 mb-8">
-                  <li className="flex items-center">
-                    <Check className="h-5 w-5 text-green-500 mr-3" />
-                    <span>Unlimited chart analyses</span>
-                  </li>
-                  <li className="flex items-center">
-                    <Check className="h-5 w-5 text-green-500 mr-3" />
-                    <span>Advanced AI insights</span>
-                  </li>
-                  <li className="flex items-center">
-                    <Check className="h-5 w-5 text-green-500 mr-3" />
-                    <span>Multi-chart projects</span>
-                  </li>
-                  <li className="flex items-center">
-                    <Check className="h-5 w-5 text-green-500 mr-3" />
-                    <span>Export & sharing</span>
-                  </li>
-                  <li className="flex items-center">
-                    <Check className="h-5 w-5 text-green-500 mr-3" />
-                    <span>Priority support</span>
-                  </li>
-                </ul>
-                
-                <Button 
-                  className="w-full bg-blue-600 hover:bg-blue-700"
-                  onClick={() => window.location.href = '/api/login'}
-                >
-                  Start Pro Trial
-                </Button>
-              </div>
-            </div>
-            
-            {/* Enterprise Plan */}
-            <div className="bg-white rounded-lg shadow-lg p-8 border border-gray-200">
-              <div className="text-center">
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">Enterprise</h3>
-                <div className="text-4xl font-bold text-gray-900 mb-4">
-                  Custom
-                </div>
-                <p className="text-gray-600 mb-6">For large organizations</p>
-                
-                <ul className="text-left space-y-3 mb-8">
-                  <li className="flex items-center">
-                    <Check className="h-5 w-5 text-green-500 mr-3" />
-                    <span>Everything in Pro</span>
-                  </li>
-                  <li className="flex items-center">
-                    <Check className="h-5 w-5 text-green-500 mr-3" />
-                    <span>Custom integrations</span>
-                  </li>
-                  <li className="flex items-center">
-                    <Check className="h-5 w-5 text-green-500 mr-3" />
-                    <span>Dedicated support</span>
-                  </li>
-                  <li className="flex items-center">
-                    <Check className="h-5 w-5 text-green-500 mr-3" />
-                    <span>SLA guarantees</span>
-                  </li>
-                  <li className="flex items-center">
-                    <Check className="h-5 w-5 text-green-500 mr-3" />
-                    <span>On-premise deployment</span>
-                  </li>
-                </ul>
-                
-                <Button 
-                  className="w-full"
-                  variant="outline"
-                >
-                  Contact Sales
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
 
-      {/* CTA Section */}
-      <section className="py-20 bg-blue-600">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-            Ready to Transform Your Data Analysis?
-          </h2>
-          <p className="text-xl text-blue-100 mb-8 max-w-3xl mx-auto">
-            Join thousands of professionals who are already using VizChat to unlock insights from their data visualizations.
-          </p>
-          <Button 
-            size="lg" 
-            className="bg-white text-blue-600 hover:bg-gray-100 px-8 py-4 text-lg"
-            onClick={() => window.location.href = '/api/login'}
-          >
-            Start Your Free Trial
-          </Button>
-        </div>
-      </section>
+
+
 
       {/* Footer */}
       <footer className="bg-gray-900 text-white py-12">
