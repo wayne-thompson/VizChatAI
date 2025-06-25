@@ -10,7 +10,15 @@ import StaticReport from "@/pages/StaticReport";
 import Landing from "@/pages/Landing";
 import NotFound from "@/pages/not-found";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: false,
+      refetchOnWindowFocus: false,
+      staleTime: 5000,
+    },
+  },
+});
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();

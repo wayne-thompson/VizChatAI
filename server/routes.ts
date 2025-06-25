@@ -44,7 +44,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Auth user endpoint
   app.get('/api/auth/user', async (req: any, res: Response) => {
-    try {      
+    try {
+      console.log("Session ID:", req.sessionID);
+      console.log("Session:", req.session);
+      console.log("Is authenticated:", req.isAuthenticated());
+      console.log("User object:", req.user);
+      
       // Check if user is authenticated and has valid session
       if (!req.isAuthenticated() || !req.user) {
         return res.status(401).json({ message: "Unauthorized" });

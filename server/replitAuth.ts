@@ -80,10 +80,16 @@ export async function setupAuth(app: Express) {
     tokens: client.TokenEndpointResponse & client.TokenEndpointResponseHelpers,
     verified: passport.AuthenticateCallback
   ) => {
-    const user = {};
-    updateUserSession(user, tokens);
-    await upsertUser(tokens.claims());
-    verified(null, user);
+    try {
+      const user = {};
+      updateUserSession(user, tokens);
+      await upsertUser(tokens.claims());
+      console.log("User authenticated successfully:", tokens.claims().sub);
+      verified(null, user);
+    } catch (error) {
+      console.error("Verification error:", error);
+      verified(error);
+    }
   };
 
   // Register strategy for all possible domains
@@ -114,8 +120,15 @@ export async function setupAuth(app: Express) {
   );
   passport.use(localhostStrategy);
 
-  passport.serializeUser((user: Express.User, cb) => cb(null, user));
-  passport.deserializeUser((user: Express.User, cb) => cb(null, user));
+  passport.serializeUser((user: Express.User, cb) => {
+    console.log("Serializing user:", user);
+    cb(null, user);
+  });
+  
+  passport.deserializeUser((user: Express.User, cb) => {
+    console.log("Deserializing user:", user);
+    cb(null, user);
+  });
 
   app.get("/api/login", (req, res, next) => {
     console.log("Login attempt for hostname:", req.hostname);
@@ -136,9 +149,24 @@ export async function setupAuth(app: Express) {
       `replitauth:${req.hostname}` : 
       `replitauth:${domains[0]}`;
       
-    passport.authenticate(strategyName, {
-      successReturnToOrRedirect: "/",
-      failureRedirect: "/api/login",
+    passport.authenticate(strategyName, (err, user, info) => {
+      if (err) {
+        console.error("Authentication error:", err);
+        return res.redirect("/api/login");
+      }
+      if (!user) {
+        console.log("Authentication failed:", info);
+        return res.redirect("/api/login");
+      }
+      
+      req.logIn(user, (err) => {
+        if (err) {
+          console.error("Login error:", err);
+          return res.redirect("/api/login");
+        }
+        console.log("Authentication successful, redirecting to /");
+        res.redirect("/");
+      });
     })(req, res, next);
   });
 
