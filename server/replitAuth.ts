@@ -42,6 +42,7 @@ export function getSession() {
       maxAge: sessionTtl,
       sameSite: 'lax',
     },
+    name: 'connect.sid',
   });
 }
 
