@@ -163,7 +163,10 @@ export async function setupAuth(app: Express) {
           return res.redirect("/api/login");
         }
         console.log("Authentication successful, redirecting to /");
-        res.redirect("/");
+        // Add a slight delay to ensure session is saved before redirect
+        setTimeout(() => {
+          res.redirect("/");
+        }, 100);
       });
     })(req, res, next);
   });
