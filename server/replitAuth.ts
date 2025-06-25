@@ -165,7 +165,8 @@ export async function setupAuth(app: Express) {
         console.log("Authentication successful, redirecting to /");
         // Add a slight delay to ensure session is saved before redirect
         setTimeout(() => {
-          res.redirect("/");
+          // Add parameter to indicate successful authentication
+          res.redirect("/?authenticated=true");
         }, 100);
       });
     })(req, res, next);

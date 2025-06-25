@@ -4,6 +4,7 @@
 VizChat is a web application that enables users to upload images of data visualizations (charts, graphs, dashboards) and interact with them through AI. The core functionality allows users to receive AI-generated insights about their visualizations and chat with an AI assistant named "Data Vizard" about the data.
 
 ## Recent Changes
+- **June 25, 2025**: Added welcome message and refresh prompt for users who complete authentication on landing page
 - **June 25, 2025**: Fixed Replit Auth "Back to my app" button to redirect to landing page for unauthenticated users
 - **June 25, 2025**: Created professional SaaS landing page with hero section, features, pricing, and CTAs
 - **June 25, 2025**: Successfully implemented Replit authentication system with secure user login

@@ -1,9 +1,58 @@
 import { Button } from '@/components/ui/button';
 import { Check, BarChart3, MessageSquare, Zap, Shield, TrendingUp } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { useLocation } from 'wouter';
 
 export default function Landing() {
+  const [location] = useLocation();
+  const [showWelcome, setShowWelcome] = useState(false);
+
+  useEffect(() => {
+    // Check if user just completed authentication (coming from auth callback)
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('authenticated') === 'true') {
+      setShowWelcome(true);
+      // Clear the URL parameter
+      window.history.replaceState({}, '', '/');
+      // Auto-hide welcome message after 5 seconds
+      setTimeout(() => setShowWelcome(false), 5000);
+    }
+  }, []);
   return (
     <div className="min-h-screen bg-white">
+      {/* Welcome Message for Authenticated Users */}
+      {showWelcome && (
+        <div className="bg-green-50 border-b border-green-200 py-3">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <Check className="h-5 w-5 text-green-400" />
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm text-green-700">
+                    Welcome back! You're now logged in. 
+                    <Button 
+                      variant="link" 
+                      className="text-green-700 underline p-0 ml-1 h-auto"
+                      onClick={() => window.location.reload()}
+                    >
+                      Refresh to access your dashboard
+                    </Button>
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowWelcome(false)}
+                className="text-green-400 hover:text-green-500"
+              >
+                <span className="sr-only">Dismiss</span>
+                ×
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Navigation */}
       <nav className="border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -36,6 +85,19 @@ export default function Landing() {
               Upload your charts and visualizations to get AI-powered analysis and insights. 
               Chat with your data using our intelligent assistant powered by GPT-4 Vision.
             </p>
+            {showWelcome && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 max-w-2xl mx-auto">
+                <p className="text-blue-800 font-medium">
+                  🎉 You're successfully logged in! The page should automatically update to show your dashboard.
+                </p>
+                <Button 
+                  className="mt-2 bg-blue-600 hover:bg-blue-700 text-white"
+                  onClick={() => window.location.reload()}
+                >
+                  Access Dashboard Now
+                </Button>
+              </div>
+            )}
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button 
                 size="lg" 
