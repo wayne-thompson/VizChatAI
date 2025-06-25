@@ -2,6 +2,8 @@ import { Link, useLocation } from "wouter";
 import React, { useRef } from "react";
 import { Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/ui/button";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -11,9 +13,15 @@ export default function Layout({ children }: LayoutProps) {
   const [location, navigate] = useLocation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const { user, isAuthenticated } = useAuth();
   
   // Check if we're on a report page
   const isReportPage = location.startsWith('/report/');
+  
+  // For unauthenticated users or shared/report pages, show simple layout
+  if (!isAuthenticated || location === '/' || location.startsWith('/shared/') || location.startsWith('/report/')) {
+    return <>{children}</>;
+  }
   
   const handleNewClick = () => {
     // Open file browser dialog directly
