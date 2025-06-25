@@ -59,7 +59,12 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
-              <img src={logoPath} alt="VizChat Logo" className="h-8 w-8" />
+              <img 
+                src={logoPath} 
+                alt="VizChat Logo" 
+                className="h-8 w-8 object-contain"
+                style={{ imageRendering: 'crisp-edges' }}
+              />
               <span className="ml-2 text-xl font-bold text-gray-900">VizChat</span>
             </div>
             <div className="flex items-center space-x-4">
@@ -201,7 +206,12 @@ export default function Landing() {
           <div className="grid md:grid-cols-4 gap-8">
             <div>
               <div className="flex items-center mb-4">
-                <img src={logoPath} alt="VizChat Logo" className="h-8 w-8" />
+                <img 
+                  src={logoPath} 
+                  alt="VizChat Logo" 
+                  className="h-8 w-8 object-contain"
+                  style={{ imageRendering: 'crisp-edges' }}
+                />
                 <span className="ml-2 text-xl font-bold">VizChat</span>
               </div>
               <p className="text-gray-400">

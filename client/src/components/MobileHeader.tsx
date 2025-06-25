@@ -9,7 +9,12 @@ export default function MobileHeader({ onMenuClick }: MobileHeaderProps) {
   return (
     <div className="flex justify-between items-center p-4 border-b border-gray-200 md:hidden">
       <div className="flex items-center space-x-2">
-        <img src={logoPath} alt="VizChat Logo" className="h-8 w-8" />
+        <img 
+          src={logoPath} 
+          alt="VizChat Logo" 
+          className="h-8 w-8 object-contain"
+          style={{ imageRendering: 'crisp-edges' }}
+        />
         <h1 className="text-lg font-semibold">VizChat</h1>
       </div>
       <Button 

@@ -1,5 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
+import logoPath from '@assets/ChatGPT Image Jun 25, 2025, 01_01_38 AM_1750827710418.png';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -22,9 +23,12 @@ export default function Sidebar({ isOpen }: SidebarProps) {
     )}>
       <div className="p-4">
         <div className="flex items-center justify-center lg:justify-start space-x-2">
-          <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
-            <i className="fas fa-chart-line text-white text-lg"></i>
-          </div>
+          <img 
+            src={logoPath} 
+            alt="VizChat Logo" 
+            className="w-10 h-10 object-contain"
+            style={{ imageRendering: 'crisp-edges' }}
+          />
           <h1 className="text-xl font-semibold hidden lg:block">VizChat</h1>
         </div>
       </div>
