@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button';
 import { Check, BarChart3, MessageSquare, Zap, Shield, TrendingUp } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useLocation } from 'wouter';
+import logoPath from '@assets/ChatGPT Image Jun 25, 2025, 01_01_38 AM_1750827710418.png';
 
 export default function Landing() {
   const [location] = useLocation();
@@ -58,7 +59,7 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
-              <BarChart3 className="h-8 w-8 text-blue-600" />
+              <img src={logoPath} alt="VizChat Logo" className="h-8 w-8" />
               <span className="ml-2 text-xl font-bold text-gray-900">VizChat</span>
             </div>
             <div className="flex items-center space-x-4">
@@ -200,7 +201,7 @@ export default function Landing() {
           <div className="grid md:grid-cols-4 gap-8">
             <div>
               <div className="flex items-center mb-4">
-                <BarChart3 className="h-8 w-8 text-blue-400" />
+                <img src={logoPath} alt="VizChat Logo" className="h-8 w-8" />
                 <span className="ml-2 text-xl font-bold">VizChat</span>
               </div>
               <p className="text-gray-400">
