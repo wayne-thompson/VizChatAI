@@ -68,7 +68,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const dataUrl = `data:${mimeType};base64,${base64Image}`;
         
         return {
-          userId: null,
+          userId: req.user.claims.sub,
           title: `Chart ${index + 1}`,
           description: `Uploaded visualization ${index + 1}`,
           imageBase64: dataUrl,
@@ -105,7 +105,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Create visualization without initial summary first
       const visualization = await storage.createVisualization({
-        userId: null, // Not requiring authentication for this MVP
+        userId: req.user.claims.sub,
         title: req.body.title || "Untitled Visualization",
         description: req.body.description || "",
         imageBase64: dataUrl,
@@ -122,7 +122,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Analyze multiple visualizations as a project
-  app.post("/api/visualizations/project/:projectGroup/analyze", async (req: Request, res: Response) => {
+  app.post("/api/visualizations/project/:projectGroup/analyze", isAuthenticated, async (req: any, res: Response) => {
     try {
       const projectGroup = req.params.projectGroup;
       const visualizations = await storage.getVisualizationsByProjectGroup(projectGroup);
@@ -257,7 +257,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Generate initial summary for a visualization
-  app.post("/api/visualizations/:id/analyze", async (req: Request, res: Response) => {
+  app.post("/api/visualizations/:id/analyze", isAuthenticated, async (req: any, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       const visualization = await storage.getVisualization(id);
@@ -340,7 +340,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get visualization by ID
-  app.get("/api/visualizations/:id", async (req: Request, res: Response) => {
+  app.get("/api/visualizations/:id", isAuthenticated, async (req: any, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       const visualization = await storage.getVisualization(id);
@@ -380,7 +380,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update visualization (title, description, tags)
-  app.patch("/api/visualizations/:id", async (req: Request, res: Response) => {
+  app.patch("/api/visualizations/:id", isAuthenticated, async (req: any, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       const visualization = await storage.getVisualization(id);
@@ -403,7 +403,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Delete visualization and associated data
-  app.delete("/api/visualizations/:id", async (req: Request, res: Response) => {
+  app.delete("/api/visualizations/:id", isAuthenticated, async (req: any, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       const visualization = await storage.getVisualization(id);
@@ -427,7 +427,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get messages for a visualization
-  app.get("/api/visualizations/:id/messages", async (req: Request, res: Response) => {
+  app.get("/api/visualizations/:id/messages", isAuthenticated, async (req: any, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       const visualization = await storage.getVisualization(id);
@@ -445,7 +445,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Send a message and get AI response
-  app.post("/api/visualizations/:id/messages", async (req: Request, res: Response) => {
+  app.post("/api/visualizations/:id/messages", isAuthenticated, async (req: any, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       const visualization = await storage.getVisualization(id);
