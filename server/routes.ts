@@ -36,9 +36,22 @@ const upload = multer({
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication
   await setupAuth(app);
+  
   // API health check
   app.get("/api/health", (req: Request, res: Response) => {
     res.json({ status: "ok" });
+  });
+
+  // Auth user endpoint
+  app.get('/api/auth/user', isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      res.json(user);
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      res.status(500).json({ message: "Failed to fetch user" });
+    }
   });
   
   // Get all visualizations

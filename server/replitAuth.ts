@@ -130,7 +130,7 @@ export async function setupAuth(app: Express) {
 export const isAuthenticated: RequestHandler = async (req, res, next) => {
   const user = req.user as any;
 
-  if (!req.isAuthenticated() || !user.expires_at) {
+  if (!req.isAuthenticated() || !user || !user.expires_at) {
     return res.status(401).json({ message: "Unauthorized" });
   }
 
@@ -141,8 +141,7 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
 
   const refreshToken = user.refresh_token;
   if (!refreshToken) {
-    res.status(401).json({ message: "Unauthorized" });
-    return;
+    return res.status(401).json({ message: "Unauthorized" });
   }
 
   try {
@@ -151,7 +150,7 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
     updateUserSession(user, tokenResponse);
     return next();
   } catch (error) {
-    res.status(401).json({ message: "Unauthorized" });
-    return;
+    console.error("Token refresh failed:", error);
+    return res.status(401).json({ message: "Unauthorized" });
   }
 };
