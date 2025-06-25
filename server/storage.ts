@@ -9,9 +9,9 @@ import { db } from './db';
 import { eq, desc } from 'drizzle-orm';
 
 export interface IStorage {
-  getUser(id: number): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
+  // User operations for Replit Auth
+  getUser(id: string): Promise<User | undefined>;
+  upsertUser(user: UpsertUser): Promise<User>;
   
   createVisualization(visualization: InsertVisualization): Promise<Visualization>;
   createMultipleVisualizations(visualizations: InsertVisualization[]): Promise<Visualization[]>;
