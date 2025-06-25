@@ -18,8 +18,13 @@ export default function Layout({ children }: LayoutProps) {
   // Check if we're on a report page
   const isReportPage = location.startsWith('/report/');
   
-  // For unauthenticated users or shared/report pages, show simple layout
-  if (!isAuthenticated || location === '/' || location.startsWith('/shared/') || location.startsWith('/report/')) {
+  // For shared/report pages, show simple layout
+  if (location.startsWith('/shared/') || location.startsWith('/report/')) {
+    return <>{children}</>;
+  }
+  
+  // For unauthenticated users, show simple layout
+  if (!isAuthenticated) {
     return <>{children}</>;
   }
   

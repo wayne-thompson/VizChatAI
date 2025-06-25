@@ -20,14 +20,9 @@ export function useAuth() {
 
     // Check auth when focus returns to window (after auth redirect)
     window.addEventListener("focus", checkAuth);
-    
-    // Also check on page load
-    checkAuth();
 
     return () => window.removeEventListener("focus", checkAuth);
   }, [queryClient]);
-
-  console.log("Auth state:", { user, isLoading, error });
 
   return {
     user,
