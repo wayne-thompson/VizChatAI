@@ -2,7 +2,7 @@ import { Button } from '@/components/ui/button';
 import { Check, BarChart3, MessageSquare, Zap, Shield, TrendingUp } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useLocation } from 'wouter';
-import logoPath from '@assets/ChatGPT Image Jun 25, 2025, 01_01_38 AM_1750827710418.png';
+import logoPath from '@assets/ChatGPT Image Jun 25, 2025, 01_15_34 AM_1750828545033.png';
 
 export default function Landing() {
   const [location] = useLocation();
