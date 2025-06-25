@@ -8,8 +8,6 @@ export function useAuth() {
     refetchOnMount: true,
   });
 
-  console.log("Auth query result:", { user, isLoading, error });
-
   return {
     user,
     isLoading,

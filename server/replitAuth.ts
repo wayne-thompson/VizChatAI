@@ -121,12 +121,10 @@ export async function setupAuth(app: Express) {
   passport.use(localhostStrategy);
 
   passport.serializeUser((user: Express.User, cb) => {
-    console.log("Serializing user:", user);
     cb(null, user);
   });
   
   passport.deserializeUser((user: Express.User, cb) => {
-    console.log("Deserializing user:", user);
     cb(null, user);
   });
 
