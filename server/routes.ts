@@ -43,10 +43,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Auth user endpoint
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res: Response) => {
+  app.get('/api/auth/user', async (req: any, res: Response) => {
     try {
+      // Check if user is authenticated and has valid session
+      if (!req.isAuthenticated() || !req.user) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
       const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
+      let user = await storage.getUser(userId);
+      
+      // If user doesn't exist in our database, create them from the session claims
+      if (!user) {
+        const claims = req.user.claims;
+        user = await storage.upsertUser({
+          id: claims.sub,
+          email: claims.email,
+          firstName: claims.first_name,
+          lastName: claims.last_name,
+          profileImageUrl: claims.profile_image_url,
+        });
+      }
+      
       res.json(user);
     } catch (error) {
       console.error("Error fetching user:", error);
