@@ -15,9 +15,15 @@ const queryClient = new QueryClient();
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
 
+  if (isLoading) {
+    return <div className="flex items-center justify-center min-h-screen">
+      <div className="text-lg">Loading...</div>
+    </div>;
+  }
+
   return (
     <Switch>
-      {isLoading || !isAuthenticated ? (
+      {!isAuthenticated ? (
         <Route path="/" component={Landing} />
       ) : (
         <>
