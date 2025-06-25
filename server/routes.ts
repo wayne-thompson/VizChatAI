@@ -1,6 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { setupAuth, isAuthenticated } from "./replitAuth";
 import { v4 as uuidv4 } from 'uuid';
 import OpenAI from "openai";
 import { 
@@ -33,13 +34,15 @@ const upload = multer({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Setup authentication
+  await setupAuth(app);
   // API health check
   app.get("/api/health", (req: Request, res: Response) => {
     res.json({ status: "ok" });
   });
   
   // Get all visualizations
-  app.get("/api/visualizations", async (req: Request, res: Response) => {
+  app.get("/api/visualizations", isAuthenticated, async (req: any, res: Response) => {
     try {
       const visualizations = await storage.getAllVisualizations();
       res.json(visualizations);
@@ -50,7 +53,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Upload multiple visualization images as a project
-  app.post("/api/visualizations/multi", upload.array("images", 10), async (req: Request, res: Response) => {
+  app.post("/api/visualizations/multi", isAuthenticated, upload.array("images", 10), async (req: any, res: Response) => {
     try {
       const files = req.files as Express.Multer.File[];
       
@@ -86,7 +89,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Upload a visualization image and get initial summary
-  app.post("/api/visualizations", upload.single("image"), async (req: Request, res: Response) => {
+  app.post("/api/visualizations", isAuthenticated, upload.single("image"), async (req: any, res: Response) => {
     try {
       if (!req.file) {
         return res.status(400).json({ message: "No image file provided" });
