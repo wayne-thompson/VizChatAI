@@ -126,12 +126,34 @@ export default function Layout({ children }: LayoutProps) {
           <button className="md:hidden text-gray-600">
             <i className="fas fa-bars text-xl"></i>
           </button>
-          <div className="hidden md:flex items-center space-x-2">
-            <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
-              <i className="fas fa-user text-gray-500 text-sm"></i>
+          {isAuthenticated ? (
+            <div className="hidden md:flex items-center space-x-2">
+              {user?.profileImageUrl && (
+                <img 
+                  src={user.profileImageUrl} 
+                  alt="Profile" 
+                  className="w-8 h-8 rounded-full object-cover"
+                />
+              )}
+              <span className="text-sm text-gray-600">
+                {user?.firstName} {user?.lastName}
+              </span>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => window.location.href = '/api/logout'}
+              >
+                Logout
+              </Button>
             </div>
-            <span className="text-sm text-gray-700">User</span>
-          </div>
+          ) : (
+            <div className="hidden md:flex items-center space-x-2">
+              <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
+                <i className="fas fa-user text-gray-500 text-sm"></i>
+              </div>
+              <span className="text-sm text-gray-700">User</span>
+            </div>
+          )}
         </div>
       </header>
 

@@ -1,0 +1,51 @@
+# VizChat Project Documentation
+
+## Overview
+VizChat is a web application that enables users to upload images of data visualizations (charts, graphs, dashboards) and interact with them through AI. The core functionality allows users to receive AI-generated insights about their visualizations and chat with an AI assistant named "Data Vizard" about the data.
+
+## Recent Changes
+- **December 25, 2025**: Added Replit authentication system with secure user login
+- **December 25, 2025**: Implemented multi-visualization upload feature for comprehensive business insights
+- **December 25, 2025**: Fixed bullet point formatting issues in AI-generated summaries
+- **December 25, 2025**: Added Save Report functionality to archive reports and return to homepage
+
+## Project Architecture
+
+### Authentication
+- Uses Replit OpenID Connect for secure authentication
+- Session management with PostgreSQL storage
+- Protected routes requiring user authentication
+- User profiles with email, name, and profile image
+
+### Database Schema
+- **users**: Stores user information from Replit Auth (id, email, firstName, lastName, profileImageUrl)
+- **sessions**: Manages user sessions for authentication
+- **visualizations**: Stores uploaded charts and AI analysis results
+- **messages**: Chat history between users and Data Vizard
+
+### Core Features
+- Single and multi-visualization upload
+- AI-powered analysis using OpenAI GPT-4o
+- Interactive chat with Data Vizard about visualizations
+- Report archiving and sharing capabilities
+- Comprehensive business insights for multiple charts
+
+### Technology Stack
+- **Frontend**: React, TypeScript, Tailwind CSS, Wouter routing
+- **Backend**: Express.js, TypeScript
+- **Database**: PostgreSQL with Drizzle ORM
+- **Authentication**: Replit OpenID Connect with Passport.js
+- **AI**: OpenAI GPT-4o for image analysis and chat
+
+## User Preferences
+- Clean, professional UI without excessive technical jargon
+- Bullet points should display actual content, not object references
+- Multi-visualization projects should show stacked layout with single title
+- Save functionality should archive and return to homepage for fresh uploads
+
+## Key Implementation Notes
+- All API routes are protected with authentication middleware
+- User IDs are strings (Replit Auth format) not integers
+- OpenAI responses require careful parsing to handle object-formatted bullet points
+- Database foreign keys updated to support varchar user IDs
+- Landing page shown for unauthenticated users, authenticated users see main app
