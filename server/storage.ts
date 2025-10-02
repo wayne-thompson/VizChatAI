@@ -1,7 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import {
   users, messages, visualizations,
-  User, InsertUser,
+  User, UpsertUser,
   Visualization, InsertVisualization,
   Message, InsertMessage
 } from '@shared/schema';
@@ -12,6 +12,7 @@ export interface IStorage {
   // User operations for Replit Auth
   getUser(id: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
+  updateUserLlmProvider(id: string, llmProvider: string): Promise<User | undefined>;
   
   createVisualization(visualization: InsertVisualization): Promise<Visualization>;
   createMultipleVisualizations(visualizations: InsertVisualization[]): Promise<Visualization[]>;
@@ -62,6 +63,15 @@ export class MemStorage implements IStorage {
       this.users.set(userData.id, newUser);
       return newUser;
     }
+  }
+
+  async updateUserLlmProvider(id: string, llmProvider: string): Promise<User | undefined> {
+    const user = this.users.get(id);
+    if (!user) return undefined;
+    
+    const updatedUser = { ...user, llmProvider, updatedAt: new Date() };
+    this.users.set(id, updatedUser);
+    return updatedUser;
   }
 
   // Visualization methods
@@ -177,6 +187,15 @@ export class DatabaseStorage implements IStorage {
           updatedAt: new Date(),
         },
       })
+      .returning();
+    return user;
+  }
+
+  async updateUserLlmProvider(id: string, llmProvider: string): Promise<User | undefined> {
+    const [user] = await db
+      .update(users)
+      .set({ llmProvider, updatedAt: new Date() })
+      .where(eq(users.id, id))
       .returning();
     return user;
   }

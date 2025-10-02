@@ -71,6 +71,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to fetch user" });
     }
   });
+
+  // Update user's LLM provider preference
+  app.patch('/api/user/llm-provider', isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const { llmProvider } = req.body;
+      
+      if (!llmProvider || !['openai', 'google', 'xai'].includes(llmProvider)) {
+        return res.status(400).json({ message: "Invalid LLM provider" });
+      }
+
+      const userId = req.user.claims.sub;
+      const updatedUser = await storage.updateUserLlmProvider(userId, llmProvider);
+      
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error updating LLM provider:", error);
+      res.status(500).json({ message: "Failed to update LLM provider" });
+    }
+  });
   
   // Get all visualizations
   app.get("/api/visualizations", isAuthenticated, async (req: any, res: Response) => {

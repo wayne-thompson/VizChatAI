@@ -19,8 +19,7 @@ export default function Account() {
     mutationFn: async (provider: string) => {
       return await apiRequest('/api/user/llm-provider', {
         method: 'PATCH',
-        body: JSON.stringify({ llmProvider: provider }),
-        headers: { 'Content-Type': 'application/json' }
+        data: { llmProvider: provider }
       });
     },
     onSuccess: () => {
