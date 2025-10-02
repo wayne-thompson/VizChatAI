@@ -136,7 +136,7 @@ export default function Layout({ children }: LayoutProps) {
               className="hidden md:flex items-center bg-primary text-white px-4 py-2 rounded-md hover:bg-primary/90 transition-colors"
             >
               <i className="fas fa-plus mr-2"></i>
-              New
+              + New Visualization
             </button>
           )}
           <button className="md:hidden text-gray-600">

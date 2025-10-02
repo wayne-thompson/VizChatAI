@@ -115,14 +115,8 @@ export default function Projects() {
 
   return (
     <div className="container mx-auto py-8 px-4">
-      <header className="flex justify-between items-center mb-8">
+      <header className="mb-8">
         <h1 className="text-2xl font-bold">Archive</h1>
-        <Link href="/">
-          <Button>
-            <i className="fas fa-plus mr-2"></i>
-            New Visualization
-          </Button>
-        </Link>
       </header>
 
       {visualizations && visualizations.length > 0 ? (
