@@ -77,14 +77,20 @@ export default function UploadSection({ onUpload, isUploading }: UploadSectionPr
   
   return (
     <div id="upload-section" className="mb-6">
-      <h2 className="text-lg font-semibold mb-3">Upload Images</h2>
-      <p className="text-sm text-gray-500 mb-4">Upload one or multiple charts/graphs to analyze together</p>
+      <div className="mb-5">
+        <h2 className="text-2xl font-bold text-slate-800 mb-2">Upload Your Data</h2>
+        <p className="text-sm text-slate-500">Upload one or multiple charts to get AI-powered insights</p>
+      </div>
       
       <div 
         {...getRootProps()} 
-        className={`drop-zone rounded-lg p-8 bg-white text-center cursor-pointer
-          ${isDragActive || isDragReject ? 'active' : ''}
-          ${isDragReject ? 'border-red-500' : ''}
+        className={`relative rounded-2xl p-10 bg-white border-2 border-dashed text-center cursor-pointer transition-all duration-300
+          ${isDragActive 
+            ? 'border-blue-500 bg-blue-50/50 shadow-xl shadow-blue-500/10' 
+            : isDragReject
+              ? 'border-red-500 bg-red-50/50'
+              : 'border-slate-200 hover:border-blue-400 hover:bg-slate-50'
+          }
         `}
       >
         <input {...getInputProps()} />
@@ -102,10 +108,10 @@ export default function UploadSection({ onUpload, isUploading }: UploadSectionPr
             }
           }}
         />
-        <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-primary-50 mb-4">
-          <i className="fas fa-cloud-upload-alt text-primary text-xl"></i>
+        <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 mb-4 shadow-lg shadow-blue-500/30">
+          <i className="fas fa-cloud-upload-alt text-white text-2xl"></i>
         </div>
-        <p className="text-sm font-medium text-gray-700 mb-1">
+        <p className="text-base font-semibold text-slate-700 mb-2">
           {isDragActive 
             ? "Drop your files here..."
             : isDragReject
@@ -113,11 +119,11 @@ export default function UploadSection({ onUpload, isUploading }: UploadSectionPr
               : "Drag and drop your files here"
           }
         </p>
-        <p className="text-xs text-gray-500 mb-3">or</p>
+        <p className="text-sm text-slate-400 mb-4">or</p>
         <Button 
           type="button" 
           disabled={isUploading}
-          className="inline-flex items-center px-4 py-2"
+          className="inline-flex items-center px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:shadow-lg hover:shadow-blue-500/30 transition-all duration-200"
           onClick={handleFileSelection}
         >
           {isUploading ? (
@@ -129,31 +135,38 @@ export default function UploadSection({ onUpload, isUploading }: UploadSectionPr
             "Browse Files"
           )}
         </Button>
-        <p className="text-xs text-gray-500 mt-2">Supports JPG, PNG (max 5MB each) • <span className="font-semibold text-gray-700">You can upload multiple files at once</span></p>
+        <p className="text-xs text-slate-400 mt-3">Supports JPG, PNG (max 5MB each) • <span className="font-medium text-slate-600">Multiple files supported</span></p>
       </div>
       
       {/* Selected Files Preview */}
       {selectedFiles.length > 0 && (
-        <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-          <h3 className="text-sm font-medium text-gray-700 mb-3">
-            Selected Files ({selectedFiles.length})
+        <div className="mt-5 p-5 bg-white rounded-2xl border border-slate-200 shadow-sm">
+          <h3 className="text-sm font-semibold text-slate-700 mb-4 flex items-center">
+            <span className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 text-blue-600 text-xs mr-2">
+              {selectedFiles.length}
+            </span>
+            Selected Files
           </h3>
           <div className="space-y-2 mb-4">
             {selectedFiles.map((file, index) => (
-              <div key={index} className="flex items-center justify-between p-2 bg-white rounded border">
-                <div className="flex items-center space-x-2">
-                  <i className="fas fa-image text-gray-400"></i>
-                  <span className="text-sm text-gray-700">{file.name}</span>
-                  <span className="text-xs text-gray-500">
-                    ({(file.size / 1024 / 1024).toFixed(1)} MB)
-                  </span>
+              <div key={index} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100 transition-all hover:bg-slate-100">
+                <div className="flex items-center space-x-3">
+                  <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-blue-100">
+                    <i className="fas fa-image text-blue-600"></i>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium text-slate-700">{file.name}</span>
+                    <span className="text-xs text-slate-400">
+                      {(file.size / 1024 / 1024).toFixed(1)} MB
+                    </span>
+                  </div>
                 </div>
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
                   onClick={() => removeFile(index)}
-                  className="text-red-500 hover:text-red-700"
+                  className="text-red-500 hover:text-red-700 hover:bg-red-50"
                 >
                   <i className="fas fa-times"></i>
                 </Button>
@@ -163,7 +176,7 @@ export default function UploadSection({ onUpload, isUploading }: UploadSectionPr
           <Button
             onClick={handleUpload}
             disabled={isUploading}
-            className="w-full"
+            className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:shadow-lg hover:shadow-blue-500/30 transition-all duration-200 font-medium"
           >
             {isUploading ? (
               <>
@@ -172,7 +185,8 @@ export default function UploadSection({ onUpload, isUploading }: UploadSectionPr
               </>
             ) : (
               <>
-                Upload & Analyze {selectedFiles.length} visualization{selectedFiles.length > 1 ? 's' : ''}
+                <i className="fas fa-sparkles mr-2"></i>
+                Upload & Analyze {selectedFiles.length} file{selectedFiles.length > 1 ? 's' : ''}
               </>
             )}
           </Button>
