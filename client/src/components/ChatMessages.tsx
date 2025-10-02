@@ -18,6 +18,21 @@ export default function ChatMessages({ messages, isTyping }: ChatMessagesProps) 
 
   return (
     <div id="chat-messages" className="flex-1 p-6 overflow-y-auto custom-scrollbar chat-container bg-gradient-to-b from-slate-50 to-white">
+      {messages.length === 0 && !isTyping && (
+        <div className="flex items-start mb-5 animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <div className="flex-shrink-0 mr-3">
+            <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+              <Sparkles className="h-5 w-5 text-white" />
+            </div>
+          </div>
+          <div className="chat-message viz-message p-4 rounded-2xl shadow-sm max-w-[85%] bg-white border border-slate-200 text-slate-700 rounded-tl-md">
+            <p className="text-sm whitespace-pre-wrap leading-relaxed">
+              Hi there! I'm Data Vizard, your chart analysis assistant. I've analyzed your visualization, and I'm ready to help you understand it better. Feel free to ask me any questions about the data, trends, or patterns you see!
+            </p>
+          </div>
+        </div>
+      )}
+      
       {messages.map((message, index) => (
         <div key={index} className={cn(
           "flex items-start mb-5 animate-in fade-in slide-in-from-bottom-4 duration-300",
