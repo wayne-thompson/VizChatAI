@@ -4,6 +4,8 @@
 VizChat is a web application that enables users to upload images of data visualizations (charts, graphs, dashboards) and interact with them through AI. The core functionality allows users to receive AI-generated insights about their visualizations and chat with an AI assistant named "Data Vizard" about the data.
 
 ## Recent Changes
+- **October 2, 2025**: Implemented multi-LLM provider support - users can choose between OpenAI GPT-4o, Google Gemini, or XAI in Account settings
+- **October 2, 2025**: All AI analysis (single, multi-visualization, chat) now respects user's chosen LLM provider preference
 - **October 2, 2025**: Updated header button to "+ New Visualization" and removed duplicate button from Archive page
 - **October 2, 2025**: Removed Generate Insights button - insights now automatically generated during upload
 - **October 2, 2025**: Added Account page with user profile and logout functionality
@@ -30,25 +32,26 @@ VizChat is a web application that enables users to upload images of data visuali
 - User profiles with email, name, and profile image
 
 ### Database Schema
-- **users**: Stores user information from Replit Auth (id, email, firstName, lastName, profileImageUrl)
+- **users**: Stores user information from Replit Auth (id, email, firstName, lastName, profileImageUrl, llmProvider)
 - **sessions**: Manages user sessions for authentication
 - **visualizations**: Stores uploaded charts and AI analysis results
 - **messages**: Chat history between users and Data Vizard
 
 ### Core Features
 - Single and multi-visualization upload
-- AI-powered analysis using OpenAI GPT-4o
+- Multi-LLM provider support: users can choose between OpenAI GPT-4o, Google Gemini, or XAI
+- AI-powered analysis respecting user's chosen LLM provider preference
 - Interactive chat with Data Vizard about visualizations
 - Report archiving and sharing capabilities (via Share button)
 - Comprehensive business insights for multiple charts
-- Account page for user profile management and logout
+- Account page for user profile management, LLM provider selection, and logout
 
 ### Technology Stack
 - **Frontend**: React, TypeScript, Tailwind CSS, Wouter routing
 - **Backend**: Express.js, TypeScript
 - **Database**: PostgreSQL with Drizzle ORM
 - **Authentication**: Replit OpenID Connect with Passport.js
-- **AI**: OpenAI GPT-4o for image analysis and chat
+- **AI**: Multi-provider support (OpenAI GPT-4o, Google Gemini, XAI) for image analysis and chat
 
 ## User Preferences
 - Clean, professional UI without excessive technical jargon
@@ -60,6 +63,9 @@ VizChat is a web application that enables users to upload images of data visuali
 ## Key Implementation Notes
 - All API routes are protected with authentication middleware
 - User IDs are strings (Replit Auth format) not integers
-- OpenAI responses require careful parsing to handle object-formatted bullet points
+- Multi-LLM provider system centralized in `server/llm-provider.ts` for maintainability
+- All AI analysis endpoints (single, multi, chat) fetch and respect user's LLM provider preference
+- LLM responses require careful parsing to handle different response formats from each provider
 - Database foreign keys updated to support varchar user IDs
 - Landing page shown for unauthenticated users, authenticated users see main app
+- API keys: OPENAI_API_KEY, GEMINI_API_KEY, and XAI_API_KEY stored in Replit secrets
