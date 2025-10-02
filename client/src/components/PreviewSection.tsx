@@ -215,10 +215,10 @@ export default function PreviewSection({
             onClick={startEditingTitle}
             className="flex items-center space-x-2 cursor-pointer group px-1 py-0.5 rounded-md hover:bg-gray-100"
           >
-            <h3 className={`text-lg font-medium ${title ? 'text-gray-800' : 'text-gray-400 italic'}`}>
+            <h3 className={`text-lg font-medium ${title ? 'text-gray-800' : 'text-gray-500 italic'}`}>
               {title || "Add a title"}
             </h3>
-            <i className="fas fa-pencil-alt text-gray-400 text-sm opacity-0 group-hover:opacity-100 transition-opacity"></i>
+            <i className="fas fa-pencil-alt text-gray-500 text-sm"></i>
           </div>
         )}
       </div>
