@@ -87,7 +87,7 @@ export default function Layout({ children }: LayoutProps) {
   };
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/30">
       {/* Hidden file input for New button */}
       <input
         type="file"
@@ -98,50 +98,75 @@ export default function Layout({ children }: LayoutProps) {
       />
       
       {/* Top Navigation Bar */}
-      <header className="w-full bg-white border-b border-gray-200 py-3 px-4 flex justify-between items-center">
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
-            <i className="fas fa-chart-line text-white text-lg"></i>
+      <header className="w-full bg-white/80 backdrop-blur-md border-b border-slate-200/60 shadow-sm sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
+                <i className="fas fa-chart-line text-white text-lg"></i>
+              </div>
+              <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">VizChat</h1>
+            </div>
+            
+            <nav className="hidden md:flex items-center space-x-1">
+              <Link 
+                href="/" 
+                className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center ${
+                  location === '/' 
+                    ? 'bg-blue-50 text-blue-600' 
+                    : 'text-slate-600 hover:text-blue-600 hover:bg-slate-50'
+                }`}
+              >
+                <i className="fas fa-home mr-2"></i>
+                Home
+              </Link>
+              <Link 
+                href="/projects" 
+                className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center ${
+                  location === '/projects' 
+                    ? 'bg-blue-50 text-blue-600' 
+                    : 'text-slate-600 hover:text-blue-600 hover:bg-slate-50'
+                }`}
+              >
+                <i className="fas fa-archive mr-2"></i>
+                Archive
+              </Link>
+              <Link 
+                href="/account" 
+                className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center ${
+                  location === '/account' 
+                    ? 'bg-blue-50 text-blue-600' 
+                    : 'text-slate-600 hover:text-blue-600 hover:bg-slate-50'
+                }`}
+              >
+                <i className="fas fa-user mr-2"></i>
+                Account
+              </Link>
+            </nav>
+            
+            <div className="flex items-center space-x-3">
+              {isReportPage ? (
+                <button
+                  onClick={handleDownloadPDF}
+                  className="hidden md:flex items-center bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-5 py-2.5 rounded-lg hover:shadow-lg hover:shadow-blue-500/30 transition-all duration-200 font-medium"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Download PDF
+                </button>
+              ) : (
+                <button
+                  onClick={handleNewClick}
+                  className="hidden md:flex items-center bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-5 py-2.5 rounded-lg hover:shadow-lg hover:shadow-blue-500/30 transition-all duration-200 font-medium"
+                >
+                  <i className="fas fa-plus mr-2"></i>
+                  New Visualization
+                </button>
+              )}
+              <button className="md:hidden text-slate-600 p-2 hover:bg-slate-100 rounded-lg transition-colors">
+                <i className="fas fa-bars text-xl"></i>
+              </button>
+            </div>
           </div>
-          <h1 className="text-xl font-semibold">VizChat</h1>
-        </div>
-        
-        <nav className="hidden md:flex items-center space-x-6">
-          <Link href="/" className="text-gray-700 hover:text-primary font-medium flex items-center">
-            <i className="fas fa-home mr-2"></i>
-            Home
-          </Link>
-          <Link href="/projects" className="text-gray-700 hover:text-primary font-medium flex items-center">
-            <i className="fas fa-archive mr-2"></i>
-            Archive
-          </Link>
-          <Link href="/account" className="text-gray-700 hover:text-primary font-medium flex items-center">
-            <i className="fas fa-user mr-2"></i>
-            Account
-          </Link>
-        </nav>
-        
-        <div className="flex items-center space-x-4">
-          {isReportPage ? (
-            <button
-              onClick={handleDownloadPDF}
-              className="hidden md:flex items-center bg-primary text-white px-4 py-2 rounded-md hover:bg-primary/90 transition-colors"
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Download PDF
-            </button>
-          ) : (
-            <button
-              onClick={handleNewClick}
-              className="hidden md:flex items-center bg-primary text-white px-4 py-2 rounded-md hover:bg-primary/90 transition-colors"
-            >
-              <i className="fas fa-plus mr-2"></i>
-              New Visualization
-            </button>
-          )}
-          <button className="md:hidden text-gray-600">
-            <i className="fas fa-bars text-xl"></i>
-          </button>
         </div>
       </header>
 
