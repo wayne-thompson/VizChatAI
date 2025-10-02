@@ -36,8 +36,8 @@ export default function Home() {
   return (
     <div className="flex flex-col md:flex-row h-[calc(100vh-64px)]">
       {/* Left Panel: Upload and Preview */}
-      <div className="w-full md:w-1/2 p-4 md:p-6 md:border-r border-gray-200 overflow-y-auto h-[50vh] md:h-full">
-        <div className="max-w-xl mx-auto">
+      <div className="w-full md:w-1/2 p-6 md:p-8 md:border-r border-slate-200/60 overflow-y-auto h-[50vh] md:h-full bg-white">
+        <div className="max-w-2xl mx-auto">
           {!visualization ? (
             <UploadSection 
               onUpload={async (files: File[]) => {
@@ -60,16 +60,20 @@ export default function Home() {
               
               {/* Show multiple visualizations indicator */}
               {visualizations.length > 1 && (
-                <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <div className="flex items-center space-x-2">
-                    <i className="fas fa-layer-group text-blue-600"></i>
-                    <span className="text-sm font-medium text-blue-700">
-                      Project Analysis: {visualizations.length} visualizations
-                    </span>
+                <div className="mt-5 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200/50 rounded-2xl">
+                  <div className="flex items-center space-x-3">
+                    <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-blue-500 shadow-lg shadow-blue-500/30">
+                      <i className="fas fa-layer-group text-white"></i>
+                    </div>
+                    <div>
+                      <span className="text-sm font-semibold text-blue-700 block">
+                        Project Analysis: {visualizations.length} visualizations
+                      </span>
+                      <p className="text-xs text-blue-600 mt-0.5">
+                        Comprehensive insights across all your charts
+                      </p>
+                    </div>
                   </div>
-                  <p className="text-xs text-blue-600 mt-1">
-                    Data Vizard will analyze all charts together for comprehensive business insights
-                  </p>
                 </div>
               )}
               
@@ -83,7 +87,7 @@ export default function Home() {
       </div>
 
       {/* Right Panel: Chat Interface */}
-      <div className="w-full md:w-1/2 flex flex-col h-[50vh] md:h-full">
+      <div className="w-full md:w-1/2 flex flex-col h-[50vh] md:h-full bg-white">
         <ChatHeader />
         
         <ChatMessages messages={messages} isTyping={isTyping} />
