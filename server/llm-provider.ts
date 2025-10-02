@@ -142,7 +142,7 @@ async function analyzeWithGemini(imageBase64: string): Promise<{ summary: string
   try {
     console.log("Analyzing with Google Gemini");
     
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
     
     // Extract base64 data without prefix
     const base64Data = imageBase64.includes(',') 
@@ -194,7 +194,7 @@ async function chatWithGemini(
   chatHistory: Array<{ role: string; content: string }>
 ): Promise<string> {
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
     
     const base64Data = imageBase64.includes(',') 
       ? imageBase64.split(',')[1] 
@@ -265,7 +265,11 @@ async function analyzeWithXAI(imageBase64: string): Promise<{ summary: string; p
       max_tokens: 800
     });
     
-    const result = JSON.parse(response.choices[0].message.content || '{}');
+    // Strip markdown code blocks if present
+    let content = response.choices[0].message.content || '{}';
+    content = content.replace(/```json\s*|\s*```/g, '').trim();
+    
+    const result = JSON.parse(content);
     if (!result.summary || !Array.isArray(result.points)) {
       throw new Error("Invalid response format from xAI");
     }
@@ -365,7 +369,7 @@ async function generateComprehensiveWithOpenAI(prompt: string): Promise<{ summar
 
 async function generateComprehensiveWithGemini(prompt: string): Promise<{ summary: string; points: string[] }> {
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
     
     const result = await model.generateContent(prompt);
     const response = await result.response;
