@@ -131,6 +131,18 @@ export default function PreviewSection({
       setIsSaving(false);
     }
   };
+
+  const handleShare = () => {
+    if (!visualization?.shareId) return;
+    
+    const reportUrl = `${window.location.origin}/report/${visualization.shareId}`;
+    navigator.clipboard.writeText(reportUrl);
+    
+    toast({
+      title: "Link copied",
+      description: "Report link has been copied to clipboard",
+    });
+  };
   
   // Handle key press events in title input
   const handleTitleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -167,6 +179,16 @@ export default function PreviewSection({
                 Generate Insights
               </>
             )}
+          </Button>
+          <Button
+            onClick={handleShare}
+            disabled={!visualization?.shareId}
+            variant="outline"
+            className="inline-flex items-center px-3 py-1.5 text-sm font-medium"
+            data-testid="button-share"
+          >
+            <i className="fas fa-share-alt mr-1.5"></i>
+            Share
           </Button>
           <Button
             onClick={saveReport}

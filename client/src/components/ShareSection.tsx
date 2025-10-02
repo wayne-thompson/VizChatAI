@@ -19,7 +19,6 @@ export default function ShareSection({ visualization, onUpdateTags }: ShareSecti
 
   if (!visualization) return null;
 
-  const shareUrl = `${window.location.origin}/share/${visualization.shareId}`;
   const reportUrl = `${window.location.origin}/report/${visualization.shareId}`;
 
   const handleCopyLink = (url: string, type: string) => {
@@ -34,8 +33,6 @@ export default function ShareSection({ visualization, onUpdateTags }: ShareSecti
     setTimeout(() => setIsCopied(false), 2000);
   };
   
-  // These wrapper functions ensure we have the correct parameter types for the onClick event
-  const handleCopyChatLink = () => handleCopyLink(shareUrl, "Interactive chat");
   const handleCopyReportLink = () => handleCopyLink(reportUrl, "Static report");
 
   const handleAddTag = async () => {
@@ -89,39 +86,8 @@ export default function ShareSection({ visualization, onUpdateTags }: ShareSecti
         <h2 className="text-base font-medium">Share This Analysis</h2>
       </div>
       
-      {/* Interactive Chat Link */}
-      <div className="mb-4">
-        <div className="flex items-center justify-between mb-2">
-          <label className="text-sm text-gray-600">Interactive Chat</label>
-          <Button 
-            id="copy-chat-link-btn" 
-            variant="ghost"
-            className="text-primary hover:text-primary/80 text-sm font-medium h-7 px-2"
-            onClick={handleCopyChatLink}
-          >
-            <i className="fas fa-copy mr-1"></i>
-            Copy
-          </Button>
-        </div>
-        <div className="flex items-center">
-          <Input 
-            type="text" 
-            value={shareUrl} 
-            readOnly 
-            className="block w-full rounded-l-md bg-gray-50 text-sm px-3 py-2 border outline-none" 
-          />
-          <Button 
-            className="bg-gray-100 border border-gray-300 border-l-0 rounded-r-md px-3 py-2 hover:bg-gray-200"
-            onClick={() => window.open(shareUrl, '_blank')}
-            type="button"
-          >
-            <i className="fas fa-external-link-alt text-gray-500"></i>
-          </Button>
-        </div>
-      </div>
-      
       {/* Static Report Link */}
-      <div>
+      <div className="mb-4">
         <div className="flex items-center justify-between mb-2">
           <label className="text-sm text-gray-600">Static Report</label>
           <Button 
