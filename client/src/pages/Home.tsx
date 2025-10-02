@@ -20,8 +20,7 @@ export default function Home() {
     isUploading, 
     isGeneratingInsights,
     uploadImage,
-    uploadMultipleImages,
-    generateInsights
+    uploadMultipleImages
   } = useImageUpload();
   
   const {
@@ -56,7 +55,6 @@ export default function Home() {
                 visualization={visualization} 
                 visualizations={visualizations}
                 summary={summary}
-                onGenerateInsights={generateInsights}
                 isGenerating={isGeneratingInsights}
               />
               

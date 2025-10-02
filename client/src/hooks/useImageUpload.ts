@@ -15,6 +15,7 @@ export function useImageUpload() {
   const uploadMultipleImages = async (files: File[]): Promise<Visualization[]> => {
     try {
       setIsUploading(true);
+      setIsGeneratingInsights(true);
       
       // Upload all files as a project
       const uploadedVizs = await uploadMultipleVisualizations(files);
@@ -26,10 +27,26 @@ export function useImageUpload() {
         setProjectGroup(uploadedVizs[0].projectGroup || null);
       }
       
-      toast({
-        title: "Upload successful",
-        description: `${files.length} visualizations uploaded. Generate insights to analyze them together.`,
-      });
+      // Automatically analyze after upload
+      if (uploadedVizs.length > 1 && uploadedVizs[0].projectGroup) {
+        const result = await analyzeProject(uploadedVizs[0].projectGroup);
+        setVisualizations(result.visualizations);
+        setSummary(result.summary);
+        
+        toast({
+          title: "Analysis complete",
+          description: `AI has analyzed all ${files.length} visualizations together for comprehensive insights.`,
+        });
+      } else if (uploadedVizs.length === 1 && uploadedVizs[0].id) {
+        const result = await analyzeVisualization(uploadedVizs[0].id);
+        setVisualization(result.visualization);
+        setSummary(result.summary);
+        
+        toast({
+          title: "Analysis complete",
+          description: "AI has generated insights for your visualization.",
+        });
+      }
       
       return uploadedVizs;
     } catch (error) {
@@ -41,21 +58,30 @@ export function useImageUpload() {
       throw error;
     } finally {
       setIsUploading(false);
+      setIsGeneratingInsights(false);
     }
   };
 
   const uploadImage = async (file: File): Promise<Visualization> => {
     try {
       setIsUploading(true);
+      setIsGeneratingInsights(true);
       
       // Upload the image
       const uploadedViz = await uploadVisualization(file);
       setVisualization(uploadedViz);
       
-      toast({
-        title: "Upload successful",
-        description: "Your visualization has been uploaded. Generate insights to analyze it.",
-      });
+      // Automatically analyze after upload
+      if (uploadedViz.id) {
+        const result = await analyzeVisualization(uploadedViz.id);
+        setVisualization(result.visualization);
+        setSummary(result.summary);
+        
+        toast({
+          title: "Analysis complete",
+          description: "AI has generated insights for your visualization.",
+        });
+      }
       
       return uploadedViz;
     } catch (error) {
@@ -67,6 +93,7 @@ export function useImageUpload() {
       throw error;
     } finally {
       setIsUploading(false);
+      setIsGeneratingInsights(false);
     }
   };
 

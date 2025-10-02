@@ -11,7 +11,6 @@ interface PreviewSectionProps {
   visualization: Visualization | null;
   visualizations?: Visualization[];
   summary: { summary: string; points: string[] } | null;
-  onGenerateInsights: () => Promise<void>;
   isGenerating: boolean;
 }
 
@@ -19,7 +18,6 @@ export default function PreviewSection({
   visualization, 
   visualizations = [],
   summary, 
-  onGenerateInsights, 
   isGenerating 
 }: PreviewSectionProps) {
   const { toast } = useToast();
@@ -162,24 +160,6 @@ export default function PreviewSection({
       <div className="flex justify-between items-center mb-3">
         <h2 className="text-lg font-semibold">Visualization Preview</h2>
         <div className="flex space-x-2">
-          <Button
-            id="generate-insights-btn"
-            onClick={onGenerateInsights}
-            disabled={isGenerating}
-            className="inline-flex items-center px-3 py-1.5 text-sm font-medium"
-          >
-            {isGenerating ? (
-              <>
-                <i className="fas fa-spinner fa-spin mr-1.5"></i>
-                Generating...
-              </>
-            ) : (
-              <>
-                <i className="fas fa-magic mr-1.5"></i>
-                Generate Insights
-              </>
-            )}
-          </Button>
           <Button
             onClick={handleShare}
             disabled={!visualization?.shareId}
