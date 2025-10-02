@@ -33,12 +33,12 @@ export default function ChatInput({ onSendMessage, isSending }: ChatInputProps) 
   };
 
   return (
-    <div className="border-t border-gray-200 p-4 bg-white">
+    <div className="border-t border-slate-200 p-5 bg-white">
       <form className="relative" onSubmit={handleSubmit}>
         <Input
           type="text"
-          placeholder="Ask a question about your chart..."
-          className="block w-full rounded-full border-gray-300 shadow-sm focus:border-primary focus:ring-primary pr-16 py-3 text-sm"
+          placeholder="Ask me anything about your data..."
+          className="block w-full rounded-2xl border-slate-200 bg-slate-50 shadow-sm focus:border-blue-500 focus:ring-blue-500 pr-16 py-3.5 text-sm placeholder:text-slate-400"
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           disabled={isSending}
@@ -48,39 +48,28 @@ export default function ChatInput({ onSendMessage, isSending }: ChatInputProps) 
             type="submit" 
             size="icon"
             variant="ghost"
-            className="inline-flex items-center justify-center h-8 w-8 transition-colors"
+            className="inline-flex items-center justify-center h-10 w-10 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:shadow-lg hover:shadow-blue-500/30 transition-all duration-200"
             disabled={!message.trim() || isSending}
           >
             {isSending ? (
-              <i className="fas fa-spinner fa-spin text-primary text-sm"></i>
+              <i className="fas fa-spinner fa-spin text-white text-sm"></i>
             ) : (
-              <i className="fas fa-paper-plane text-primary text-sm"></i>
+              <i className="fas fa-paper-plane text-white text-sm"></i>
             )}
           </Button>
         </div>
       </form>
-      <div className="flex justify-between mt-2 px-2">
-        <div className="text-xs text-gray-500">
-          <span className="mr-1">Suggested:</span>
-          {suggestions.map((suggestion, index) => (
-            <Button 
-              key={index}
-              variant="link" 
-              className="text-primary hover:text-primary/80 mr-3 text-xs p-0 h-auto"
-              onClick={() => handleSuggestionClick(suggestion)}
-            >
-              {suggestion}
-            </Button>
-          ))}
-        </div>
-        <Button 
-          variant="ghost" 
-          size="sm"
-          className="text-xs text-gray-500 hover:text-gray-700 p-0 h-auto"
-        >
-          <i className="fas fa-microphone mr-1"></i>
-          Voice
-        </Button>
+      <div className="flex items-center gap-2 mt-3 px-1">
+        <span className="text-xs text-slate-400 font-medium">Quick:</span>
+        {suggestions.map((suggestion, index) => (
+          <button 
+            key={index}
+            className="px-3 py-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors text-xs font-medium"
+            onClick={() => handleSuggestionClick(suggestion)}
+          >
+            {suggestion}
+          </button>
+        ))}
       </div>
     </div>
   );
