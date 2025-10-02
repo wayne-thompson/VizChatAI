@@ -157,40 +157,6 @@ export default function PreviewSection({
   
   return (
     <div id="preview-section" className="mb-6">
-      <div className="flex justify-between items-center mb-3">
-        <h2 className="text-lg font-semibold">Visualization Preview</h2>
-        <div className="flex space-x-2">
-          <Button
-            onClick={handleShare}
-            disabled={!visualization?.shareId}
-            variant="outline"
-            className="inline-flex items-center px-3 py-1.5 text-sm font-medium"
-            data-testid="button-share"
-          >
-            <i className="fas fa-share-alt mr-1.5"></i>
-            Share
-          </Button>
-          <Button
-            onClick={saveReport}
-            disabled={isSaving || isGenerating}
-            variant="outline"
-            className="inline-flex items-center px-3 py-1.5 text-sm font-medium"
-          >
-            {isSaving ? (
-              <>
-                <i className="fas fa-spinner fa-spin mr-1.5"></i>
-                Saving...
-              </>
-            ) : (
-              <>
-                <i className="fas fa-save mr-1.5"></i>
-                Save Report
-              </>
-            )}
-          </Button>
-        </div>
-      </div>
-      
       {/* Editable Title */}
       <div className="mb-4 flex items-center">
         {isEditingTitle ? (
@@ -277,6 +243,38 @@ export default function PreviewSection({
             <p>Click "Generate Insights" to analyze this visualization with AI.</p>
           )}
         </div>
+      </div>
+      
+      {/* Action Buttons */}
+      <div className="mt-4 flex justify-end space-x-2">
+        <Button
+          onClick={handleShare}
+          disabled={!visualization?.shareId}
+          variant="outline"
+          className="inline-flex items-center px-3 py-1.5 text-sm font-medium"
+          data-testid="button-share"
+        >
+          <i className="fas fa-share-alt mr-1.5"></i>
+          Share
+        </Button>
+        <Button
+          onClick={saveReport}
+          disabled={isSaving || isGenerating}
+          variant="outline"
+          className="inline-flex items-center px-3 py-1.5 text-sm font-medium"
+        >
+          {isSaving ? (
+            <>
+              <i className="fas fa-spinner fa-spin mr-1.5"></i>
+              Saving...
+            </>
+          ) : (
+            <>
+              <i className="fas fa-save mr-1.5"></i>
+              Save Report
+            </>
+          )}
+        </Button>
       </div>
     </div>
   );
