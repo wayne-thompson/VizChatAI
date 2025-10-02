@@ -1,11 +1,48 @@
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { User as UserIcon, Mail, LogOut } from "lucide-react";
+import { User as UserIcon, Mail, LogOut, Bot } from "lucide-react";
 import type { User } from "@shared/schema";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
 
 export default function Account() {
   const { user, isAuthenticated } = useAuth();
   const typedUser = user as User | undefined;
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [selectedProvider, setSelectedProvider] = useState<string>(typedUser?.llmProvider || "openai");
+
+  const updateLlmMutation = useMutation({
+    mutationFn: async (provider: string) => {
+      return await apiRequest('/api/user/llm-provider', {
+        method: 'PATCH',
+        body: JSON.stringify({ llmProvider: provider }),
+        headers: { 'Content-Type': 'application/json' }
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "LLM Provider updated",
+        description: "Your AI model preference has been saved successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
+    },
+    onError: (error) => {
+      toast({
+        variant: "destructive",
+        title: "Update failed",
+        description: error instanceof Error ? error.message : "Failed to update LLM provider",
+      });
+    }
+  });
+
+  const handleProviderChange = (provider: string) => {
+    setSelectedProvider(provider);
+    updateLlmMutation.mutate(provider);
+  };
 
   if (!isAuthenticated) {
     return null;
@@ -35,6 +72,35 @@ export default function Account() {
             <p className="text-gray-600 flex items-center mt-1">
               <Mail className="h-4 w-4 mr-2" />
               {typedUser?.email}
+            </p>
+          </div>
+        </div>
+
+        <div className="border-t border-gray-200 pt-6 mb-6">
+          <h3 className="text-lg font-medium mb-4 flex items-center">
+            <Bot className="h-5 w-5 mr-2" />
+            AI Model Preference
+          </h3>
+          <div className="max-w-xs">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Select AI Provider
+            </label>
+            <Select 
+              value={selectedProvider} 
+              onValueChange={handleProviderChange}
+              disabled={updateLlmMutation.isPending}
+            >
+              <SelectTrigger data-testid="select-llm-provider">
+                <SelectValue placeholder="Select AI provider" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="openai">OpenAI (GPT-4o)</SelectItem>
+                <SelectItem value="google">Google (Gemini)</SelectItem>
+                <SelectItem value="xai">xAI (Grok)</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-gray-500 mt-2">
+              Choose which AI model to use for analyzing your visualizations
             </p>
           </div>
         </div>
