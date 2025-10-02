@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { Message } from "@shared/schema";
 import { cn } from "@/lib/utils";
-import dataVizardImage from "@/assets/datawizard.png";
+import { Sparkles } from "lucide-react";
 
 interface ChatMessagesProps {
   messages: Message[];
@@ -25,12 +25,8 @@ export default function ChatMessages({ messages, isTyping }: ChatMessagesProps) 
         )}>
           {message.role === "assistant" && (
             <div className="flex-shrink-0 mr-3">
-              <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center overflow-hidden shadow-lg shadow-indigo-500/30">
-                <img 
-                  src={dataVizardImage} 
-                  alt="Data Vizard" 
-                  className="h-7 w-7 object-contain"
-                />
+              <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+                <Sparkles className="h-5 w-5 text-white" />
               </div>
             </div>
           )}
@@ -57,12 +53,8 @@ export default function ChatMessages({ messages, isTyping }: ChatMessagesProps) 
       {isTyping && (
         <div className="flex items-start mb-5 animate-in fade-in slide-in-from-bottom-4 duration-300">
           <div className="flex-shrink-0 mr-3">
-            <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center overflow-hidden shadow-lg shadow-indigo-500/30">
-              <img 
-                src={dataVizardImage} 
-                alt="Data Vizard" 
-                className="h-7 w-7 object-contain"
-              />
+            <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+              <Sparkles className="h-5 w-5 text-white" />
             </div>
           </div>
           <div className="chat-message viz-message p-4 rounded-2xl shadow-sm bg-white border border-slate-200">
