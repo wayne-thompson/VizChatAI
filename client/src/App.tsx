@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import Layout from "@/components/Layout";
 import Home from "@/pages/Home";
 import Projects from "@/pages/Projects";
+import Account from "@/pages/Account";
 import VisualizationDetail from "@/pages/VisualizationDetail";
 import StaticReport from "@/pages/StaticReport";
 import Landing from "@/pages/Landing";
@@ -30,6 +31,7 @@ function Router() {
         <>
           <Route path="/" component={Home} />
           <Route path="/projects" component={Projects} />
+          <Route path="/account" component={Account} />
           <Route path="/visualization/:id" component={VisualizationDetail} />
         </>
       )}

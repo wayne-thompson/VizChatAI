@@ -3,7 +3,6 @@ import React, { useRef } from "react";
 import { Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { Button } from "@/components/ui/button";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -13,7 +12,7 @@ export default function Layout({ children }: LayoutProps) {
   const [location, navigate] = useLocation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
-  const { user, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
   
   // Check if we're on a report page
   const isReportPage = location.startsWith('/report/');
@@ -116,6 +115,10 @@ export default function Layout({ children }: LayoutProps) {
             <i className="fas fa-archive mr-2"></i>
             Archive
           </Link>
+          <Link href="/account" className="text-gray-700 hover:text-primary font-medium flex items-center">
+            <i className="fas fa-user mr-2"></i>
+            Account
+          </Link>
         </nav>
         
         <div className="flex items-center space-x-4">
@@ -139,34 +142,6 @@ export default function Layout({ children }: LayoutProps) {
           <button className="md:hidden text-gray-600">
             <i className="fas fa-bars text-xl"></i>
           </button>
-          {isAuthenticated ? (
-            <div className="hidden md:flex items-center space-x-2">
-              {user?.profileImageUrl && (
-                <img 
-                  src={user.profileImageUrl} 
-                  alt="Profile" 
-                  className="w-8 h-8 rounded-full object-cover"
-                />
-              )}
-              <span className="text-sm text-gray-600">
-                {user?.firstName} {user?.lastName}
-              </span>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => window.location.href = '/api/logout'}
-              >
-                Logout
-              </Button>
-            </div>
-          ) : (
-            <div className="hidden md:flex items-center space-x-2">
-              <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
-                <i className="fas fa-user text-gray-500 text-sm"></i>
-              </div>
-              <span className="text-sm text-gray-700">User</span>
-            </div>
-          )}
         </div>
       </header>
 

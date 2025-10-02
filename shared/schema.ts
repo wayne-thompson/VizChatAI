@@ -24,9 +24,6 @@ export const users = pgTable("users", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-export type UpsertUser = typeof users.$inferInsert;
-export type User = typeof users.$inferSelect;
-
 // Visualizations schema - adding project grouping field
 export const visualizations = pgTable("visualizations", {
   id: serial("id").primaryKey(),
@@ -67,7 +64,7 @@ export const insertMessageSchema = createInsertSchema(messages).omit({
 
 // Export types
 export type User = typeof users.$inferSelect;
-export type InsertUser = z.infer<typeof insertUserSchema>;
+export type UpsertUser = typeof users.$inferInsert;
 
 export type Visualization = typeof visualizations.$inferSelect;
 export type InsertVisualization = z.infer<typeof insertVisualizationSchema>;
