@@ -261,20 +261,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
 
-        // Create welcome message for the first visualization (as chat entry point)
-        await storage.createMessage({
-          visualizationId: visualizations[0].id,
-          role: "assistant",
-          content: "Hi there! I'm Data Vizard, your business analysis assistant. I've analyzed all your visualizations together to give you comprehensive insights about your business. Feel free to ask me any questions about the patterns, trends, or strategic implications I've discovered!"
-        });
-
-        // Create comprehensive analysis message
-        await storage.createMessage({
-          visualizationId: visualizations[0].id,
-          role: "assistant",
-          content: `I've analyzed your ${visualizations.length} visualizations together! ${comprehensiveAnalysis.summary} Would you like me to dive deeper into any specific area or relationship between your data?`
-        });
-
         res.json({ 
           visualizations,
           summary: comprehensiveAnalysis,
@@ -343,20 +329,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Update visualization with initial summary
         const updatedVisualization = await storage.updateVisualization(id, {
           initialSummary: JSON.stringify(result)
-        });
-
-        // Create welcome message
-        await storage.createMessage({
-          visualizationId: id,
-          role: "assistant",
-          content: "Hi there! I'm Viz, your chart analysis assistant. I've analyzed your visualization, and I'm ready to help you understand it better. Feel free to ask me any questions about the data, trends, or patterns you see!"
-        });
-
-        // Create initial analysis message
-        await storage.createMessage({
-          visualizationId: id,
-          role: "assistant",
-          content: `I've analyzed your visualization! ${result.summary} Would you like me to explain any specific aspect in more detail?`
         });
 
         res.json({ 
