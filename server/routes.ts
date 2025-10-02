@@ -181,21 +181,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Project visualizations not found" });
       }
 
-      // Check if OpenAI API key is available
-      if (!process.env.OPENAI_API_KEY) {
-        return res.status(500).json({ message: "OpenAI API key not configured" });
-      }
+      // Get user's LLM provider preference
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      const llmProvider = user?.llmProvider || 'openai';
 
       try {
-        // Import our OpenAI module
-        const { analyzeVisualization } = await import('./direct-openai');
+        // Import our LLM provider module
+        const { analyzeVisualization, generateComprehensiveAnalysis } = await import('./llm-provider');
         
-        console.log("Analyzing project with multiple visualizations:", projectGroup);
+        console.log(`Analyzing project with ${llmProvider}:`, projectGroup);
         
         // Analyze each visualization individually first
         const individualAnalyses = [];
         for (const viz of visualizations) {
-          const analysis = await analyzeVisualization(viz.imageBase64);
+          const analysis = await analyzeVisualization(viz.imageBase64, llmProvider);
           individualAnalyses.push({
             title: viz.title || `Chart ${viz.id}`,
             analysis
@@ -223,25 +223,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           - 'points': an array of strings, where each string is a complete bullet point (NOT objects)
         `;
 
-        const comprehensiveResponse = await openai.chat.completions.create({
-          model: "gpt-4o",
-          messages: [
-            {
-              role: "system",
-              content: "You are Data Vizard, an expert business analyst. Analyze multiple related visualizations to provide comprehensive business insights."
-            },
-            {
-              role: "user",
-              content: comprehensivePrompt
-            }
-          ],
-          response_format: { type: "json_object" },
-        });
-
-        const rawResponse = comprehensiveResponse.choices[0].message.content || '{}';
-        console.log("Raw OpenAI response:", rawResponse);
+        const comprehensiveAnalysis = await generateComprehensiveAnalysis(comprehensivePrompt, llmProvider);
         
-        const comprehensiveAnalysis = JSON.parse(rawResponse);
+        console.log("Comprehensive analysis received:", comprehensiveAnalysis);
         
         // Ensure points is an array of strings - more aggressive extraction
         if (comprehensiveAnalysis.points && Array.isArray(comprehensiveAnalysis.points)) {
@@ -316,20 +300,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Visualization not found" });
       }
 
-      // Check if OpenAI API key is available
-      if (!process.env.OPENAI_API_KEY) {
-        return res.status(500).json({ message: "OpenAI API key not configured" });
-      }
+      // Get user's LLM provider preference
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      const llmProvider = user?.llmProvider || 'openai';
 
       try {
-        // Import our OpenAI module
-        const { analyzeVisualization } = await import('./direct-openai');
+        // Import our LLM provider module
+        const { analyzeVisualization } = await import('./llm-provider');
         
-        console.log("Analyzing visualization with OpenAI:", id);
+        console.log(`Analyzing visualization with ${llmProvider}:`, id);
         
-        // Get analysis from OpenAI for the actual visualization
-        const result = await analyzeVisualization(visualization.imageBase64);
-        console.log("Received analysis from OpenAI:", result);
+        // Get analysis from the selected LLM provider
+        const result = await analyzeVisualization(visualization.imageBase64, llmProvider);
+        console.log("Received analysis:", result);
         
         // Ensure points is an array of strings - more aggressive extraction
         if (result.points && Array.isArray(result.points)) {
@@ -517,16 +501,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get all previous messages
       const messages = await storage.getMessagesByVisualization(id);
       
-      // Check if OpenAI API key is available
-      if (!process.env.OPENAI_API_KEY) {
-        return res.status(500).json({ message: "OpenAI API key not configured" });
-      }
+      // Get user's LLM provider preference
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      const llmProvider = user?.llmProvider || 'openai';
 
       try {
-        // Import our OpenAI module
-        const { getVisualizationChatResponse } = await import('./direct-openai');
+        // Import our LLM provider module
+        const { getVisualizationChatResponse } = await import('./llm-provider');
         
-        console.log("Processing chat with OpenAI for visualization:", id);
+        console.log(`Processing chat with ${llmProvider} for visualization:`, id);
         
         // Format previous messages for the API
         const chatHistory = messages
@@ -536,14 +520,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
             content: msg.content
           }));
         
-        // Get response from OpenAI that analyzes the actual visualization
+        // Get response from the selected LLM provider
         const responseText = await getVisualizationChatResponse(
           visualization.imageBase64,
           req.body.content,
-          chatHistory
+          chatHistory,
+          llmProvider
         );
         
-        console.log("Received response from OpenAI");
+        console.log("Received response from LLM");
 
         // Save assistant response
         const assistantMessage = await storage.createMessage({
