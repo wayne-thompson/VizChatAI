@@ -77,8 +77,8 @@ export default function UploadSection({ onUpload, isUploading }: UploadSectionPr
   
   return (
     <div id="upload-section" className="mb-6">
-      <h2 className="text-lg font-semibold mb-3">Upload Image</h2>
-      <p className="text-sm text-gray-500 mb-4">Upload a chart or graph image to analyze</p>
+      <h2 className="text-lg font-semibold mb-3">Upload Images</h2>
+      <p className="text-sm text-gray-500 mb-4">Upload one or multiple charts/graphs to analyze together</p>
       
       <div 
         {...getRootProps()} 
@@ -129,7 +129,7 @@ export default function UploadSection({ onUpload, isUploading }: UploadSectionPr
             "Browse Files"
           )}
         </Button>
-        <p className="text-xs text-gray-500 mt-2">Supports JPG, PNG (max 5MB each) • Upload multiple files for comprehensive analysis</p>
+        <p className="text-xs text-gray-500 mt-2">Supports JPG, PNG (max 5MB each) • <span className="font-semibold text-gray-700">You can upload multiple files at once</span></p>
       </div>
       
       {/* Selected Files Preview */}
