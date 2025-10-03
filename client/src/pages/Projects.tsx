@@ -275,7 +275,7 @@ export default function Projects() {
       {filteredVisualizations && filteredVisualizations.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredVisualizations.map((viz) => (
-            <Card key={viz.id} className="overflow-hidden hover:shadow-md transition-shadow">
+            <Card key={viz.id} className="relative overflow-hidden hover:shadow-md transition-shadow">
               <div className="absolute top-4 left-4 z-10" onClick={(e) => e.stopPropagation()}>
                 <Checkbox
                   checked={selectedIds.has(viz.id)}
