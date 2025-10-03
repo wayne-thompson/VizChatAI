@@ -28,6 +28,9 @@ export default function Layout({ children }: LayoutProps) {
   }
   
   const handleNewClick = () => {
+    // Set flag to reset session
+    sessionStorage.setItem('resetSession', 'true');
+    
     // Open file browser dialog directly
     if (fileInputRef.current) {
       fileInputRef.current.click();
@@ -111,6 +114,7 @@ export default function Layout({ children }: LayoutProps) {
             <nav className="hidden md:flex items-center space-x-1">
               <Link 
                 href="/" 
+                onClick={() => sessionStorage.setItem('resetSession', 'true')}
                 className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center ${
                   location === '/' 
                     ? 'bg-blue-50 text-blue-600' 

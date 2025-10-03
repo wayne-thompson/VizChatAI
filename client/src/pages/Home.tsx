@@ -20,7 +20,8 @@ export default function Home() {
     isUploading, 
     isGeneratingInsights,
     uploadImage,
-    uploadMultipleImages
+    uploadMultipleImages,
+    resetSession
   } = useImageUpload();
   
   const {
@@ -33,10 +34,19 @@ export default function Home() {
     updateVisualizationTags
   } = useSharing(visualization?.id || 0);
 
-  // Check for file from "New Visualization" button
+  // Check for session reset or new file upload
   useEffect(() => {
+    const resetFlag = sessionStorage.getItem('resetSession');
+    const storedFile = sessionStorage.getItem('selectedFile');
+    
+    // Reset session if flag is set
+    if (resetFlag === 'true') {
+      resetSession();
+      sessionStorage.removeItem('resetSession');
+    }
+    
+    // Check for file from "New Visualization" button
     const checkForSelectedFile = async () => {
-      const storedFile = sessionStorage.getItem('selectedFile');
       if (storedFile) {
         try {
           const fileData = JSON.parse(storedFile);
@@ -59,7 +69,7 @@ export default function Home() {
     };
     
     checkForSelectedFile();
-  }, [uploadImage]);
+  }, [uploadImage, resetSession]);
 
   return (
     <div className="flex flex-col md:flex-row h-[calc(100vh-64px)]">

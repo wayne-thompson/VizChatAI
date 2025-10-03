@@ -133,6 +133,13 @@ export function useImageUpload() {
     }
   };
 
+  const resetSession = () => {
+    setVisualization(null);
+    setVisualizations([]);
+    setSummary(null);
+    setProjectGroup(null);
+  };
+
   return {
     visualization,
     visualizations,
@@ -142,6 +149,7 @@ export function useImageUpload() {
     uploadImage,
     uploadMultipleImages,
     generateInsights,
-    projectGroup
+    projectGroup,
+    resetSession
   };
 }
