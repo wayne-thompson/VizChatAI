@@ -24,6 +24,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon } from "lucide-react";
+import type { DateRange } from "react-day-picker";
 
 // Function to truncate long text
 const truncate = (text: string | null | undefined, maxLength: number = 100) => {
@@ -37,27 +38,27 @@ export default function Projects() {
   const [visualizationToDelete, setVisualizationToDelete] = useState<Visualization | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
-  const [dateFilter, setDateFilter] = useState<Date | undefined>(undefined);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
 
   const { data: visualizations, isLoading, error } = useQuery<Visualization[]>({
     queryKey: ['/api/visualizations'],
     queryFn: () => apiRequest<Visualization[]>('/api/visualizations')
   });
 
-  // Filter visualizations by date
+  // Filter visualizations by date range
   const filteredVisualizations = useMemo(() => {
     if (!visualizations) return [];
     
-    if (!dateFilter) return visualizations;
+    if (!dateRange?.from) return visualizations;
     
-    const filterDate = startOfDay(dateFilter);
-    const filterDateEnd = endOfDay(dateFilter);
+    const startDate = startOfDay(dateRange.from);
+    const endDate = dateRange.to ? endOfDay(dateRange.to) : endOfDay(dateRange.from);
     
     return visualizations.filter(viz => {
       const vizDate = new Date(viz.createdAt);
-      return vizDate >= filterDate && vizDate <= filterDateEnd;
+      return vizDate >= startDate && vizDate <= endDate;
     });
-  }, [visualizations, dateFilter]);
+  }, [visualizations, dateRange]);
 
   // Toggle selection
   const toggleSelection = (id: number) => {
@@ -190,28 +191,38 @@ export default function Projects() {
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl font-bold">Archive</h1>
           
-          {/* Date Filter */}
+          {/* Date Range Filter */}
           <div className="flex items-center gap-3">
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="flex items-center gap-2">
+                <Button variant="outline" className="flex items-center gap-2" data-testid="button-date-filter">
                   <CalendarIcon className="h-4 w-4" />
-                  {dateFilter ? format(dateFilter, "PPP") : "Filter by date"}
+                  {dateRange?.from ? (
+                    dateRange.to ? (
+                      `${format(dateRange.from, "PP")} - ${format(dateRange.to, "PP")}`
+                    ) : (
+                      format(dateRange.from, "PP")
+                    )
+                  ) : (
+                    "Filter by date range"
+                  )}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="end">
                 <Calendar
-                  mode="single"
-                  selected={dateFilter}
-                  onSelect={setDateFilter}
+                  mode="range"
+                  selected={dateRange}
+                  onSelect={setDateRange}
+                  numberOfMonths={2}
                   initialFocus
                 />
-                {dateFilter && (
+                {dateRange?.from && (
                   <div className="p-3 border-t">
                     <Button
                       variant="outline"
                       className="w-full"
-                      onClick={() => setDateFilter(undefined)}
+                      onClick={() => setDateRange(undefined)}
+                      data-testid="button-clear-date-filter"
                     >
                       Clear filter
                     </Button>
