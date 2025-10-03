@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Badge } from "@/components/ui/badge";
 import { Visualization } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, format, startOfDay, endOfDay } from "date-fns";
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -20,6 +20,10 @@ import {
   AlertDialogTrigger
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { CalendarIcon } from "lucide-react";
 
 // Function to truncate long text
 const truncate = (text: string | null | undefined, maxLength: number = 100) => {
@@ -32,13 +36,80 @@ export default function Projects() {
   const queryClient = useQueryClient();
   const [visualizationToDelete, setVisualizationToDelete] = useState<Visualization | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [dateFilter, setDateFilter] = useState<Date | undefined>(undefined);
 
   const { data: visualizations, isLoading, error } = useQuery<Visualization[]>({
     queryKey: ['/api/visualizations'],
     queryFn: () => apiRequest<Visualization[]>('/api/visualizations')
   });
+
+  // Filter visualizations by date
+  const filteredVisualizations = useMemo(() => {
+    if (!visualizations) return [];
+    
+    if (!dateFilter) return visualizations;
+    
+    const filterDate = startOfDay(dateFilter);
+    const filterDateEnd = endOfDay(dateFilter);
+    
+    return visualizations.filter(viz => {
+      const vizDate = new Date(viz.createdAt);
+      return vizDate >= filterDate && vizDate <= filterDateEnd;
+    });
+  }, [visualizations, dateFilter]);
+
+  // Toggle selection
+  const toggleSelection = (id: number) => {
+    const newSelected = new Set(selectedIds);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedIds(newSelected);
+  };
+
+  // Select all
+  const selectAll = () => {
+    if (selectedIds.size === filteredVisualizations.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredVisualizations.map(v => v.id)));
+    }
+  };
+
+  // Bulk delete
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    
+    try {
+      setIsDeleting(true);
+      
+      await apiRequest('/api/visualizations/bulk-delete', {
+        method: 'POST',
+        data: { ids: Array.from(selectedIds) }
+      });
+      
+      toast({
+        title: "Success",
+        description: `Deleted ${selectedIds.size} visualization(s)`,
+      });
+      
+      setSelectedIds(new Set());
+      queryClient.invalidateQueries({ queryKey: ['/api/visualizations'] });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete visualizations",
+        variant: "destructive"
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
   
-  // Function to handle project deletion
+  // Function to handle single project deletion
   const handleDeleteProject = async () => {
     if (!visualizationToDelete) return;
     
@@ -116,13 +187,93 @@ export default function Projects() {
   return (
     <div className="container mx-auto py-8 px-4">
       <header className="mb-8">
-        <h1 className="text-2xl font-bold">Archive</h1>
+        <div className="flex justify-between items-center mb-4">
+          <h1 className="text-2xl font-bold">Archive</h1>
+          
+          {/* Date Filter */}
+          <div className="flex items-center gap-3">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="flex items-center gap-2">
+                  <CalendarIcon className="h-4 w-4" />
+                  {dateFilter ? format(dateFilter, "PPP") : "Filter by date"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <Calendar
+                  mode="single"
+                  selected={dateFilter}
+                  onSelect={setDateFilter}
+                  initialFocus
+                />
+                {dateFilter && (
+                  <div className="p-3 border-t">
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => setDateFilter(undefined)}
+                    >
+                      Clear filter
+                    </Button>
+                  </div>
+                )}
+              </PopoverContent>
+            </Popover>
+          </div>
+        </div>
+
+        {/* Bulk Actions */}
+        {filteredVisualizations.length > 0 && (
+          <div className="flex items-center gap-4 mb-4">
+            <div className="flex items-center gap-2">
+              <Checkbox
+                checked={selectedIds.size === filteredVisualizations.length && filteredVisualizations.length > 0}
+                onCheckedChange={selectAll}
+                data-testid="checkbox-select-all"
+              />
+              <span className="text-sm text-gray-600">
+                Select all ({selectedIds.size} selected)
+              </span>
+            </div>
+            
+            {selectedIds.size > 0 && (
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleBulkDelete}
+                disabled={isDeleting}
+                data-testid="button-delete-selected"
+              >
+                {isDeleting ? (
+                  <>
+                    <i className="fas fa-spinner fa-spin mr-2"></i>
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <i className="fas fa-trash-alt mr-2"></i>
+                    Delete Selected ({selectedIds.size})
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
+        )}
       </header>
 
-      {visualizations && visualizations.length > 0 ? (
+      {filteredVisualizations && filteredVisualizations.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {visualizations.map((viz) => (
+          {filteredVisualizations.map((viz) => (
             <Card key={viz.id} className="overflow-hidden hover:shadow-md transition-shadow">
+              <div className="absolute top-4 left-4 z-10" onClick={(e) => e.stopPropagation()}>
+                <Checkbox
+                  checked={selectedIds.has(viz.id)}
+                  onCheckedChange={() => toggleSelection(viz.id)}
+                  className="bg-white border-2"
+                  data-testid={`checkbox-viz-${viz.id}`}
+                />
+              </div>
+              
               <Link href={`/visualization/${viz.id}`}>
                 <CardHeader className="pb-2 cursor-pointer">
                   <CardTitle className="text-xl">

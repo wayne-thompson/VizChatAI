@@ -432,6 +432,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Bulk delete visualizations
+  app.post("/api/visualizations/bulk-delete", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const { ids } = req.body;
+      
+      if (!Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({ message: "Invalid request: ids array is required" });
+      }
+      
+      // Delete each visualization
+      const results = await Promise.all(
+        ids.map(id => storage.deleteVisualization(parseInt(id)))
+      );
+      
+      const successCount = results.filter(r => r).length;
+      
+      res.json({ 
+        success: true, 
+        deletedCount: successCount,
+        message: `Successfully deleted ${successCount} visualization(s)`
+      });
+    } catch (error) {
+      console.error("Error bulk deleting visualizations:", error);
+      res.status(500).json({ message: "Error deleting visualizations" });
+    }
+  });
+
   // Get messages for a visualization
   app.get("/api/visualizations/:id/messages", isAuthenticated, async (req: any, res: Response) => {
     try {
