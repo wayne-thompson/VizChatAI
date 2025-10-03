@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import UploadSection from "@/components/UploadSection";
 import PreviewSection from "@/components/PreviewSection";
 import ShareSection from "@/components/ShareSection";
@@ -32,6 +32,34 @@ export default function Home() {
   const {
     updateVisualizationTags
   } = useSharing(visualization?.id || 0);
+
+  // Check for file from "New Visualization" button
+  useEffect(() => {
+    const checkForSelectedFile = async () => {
+      const storedFile = sessionStorage.getItem('selectedFile');
+      if (storedFile) {
+        try {
+          const fileData = JSON.parse(storedFile);
+          
+          // Convert dataUrl back to File object
+          const response = await fetch(fileData.dataUrl);
+          const blob = await response.blob();
+          const file = new File([blob], fileData.name, { type: fileData.type });
+          
+          // Upload the file
+          await uploadImage(file);
+          
+          // Clear sessionStorage
+          sessionStorage.removeItem('selectedFile');
+        } catch (error) {
+          console.error('Error processing selected file:', error);
+          sessionStorage.removeItem('selectedFile');
+        }
+      }
+    };
+    
+    checkForSelectedFile();
+  }, [uploadImage]);
 
   return (
     <div className="flex flex-col md:flex-row h-[calc(100vh-64px)]">
