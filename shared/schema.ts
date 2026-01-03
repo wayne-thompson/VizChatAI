@@ -63,6 +63,23 @@ export const insertMessageSchema = createInsertSchema(messages).omit({
   createdAt: true,
 });
 
+// Generated visualizations schema - for the Create feature
+export const generatedVisualizations = pgTable("generated_visualizations", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id),
+  sourceImageBase64: text("source_image_base64").notNull(), // Original screenshot
+  styleReferenceBase64: text("style_reference_base64"), // Optional style reference
+  prompt: text("prompt"), // User's prompt for customization
+  generatedImages: jsonb("generated_images").$type<string[]>(), // Array of generated viz base64 strings
+  shareId: text("share_id").notNull().unique(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertGeneratedVisualizationSchema = createInsertSchema(generatedVisualizations).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Export types
 export type User = typeof users.$inferSelect;
 export type UpsertUser = typeof users.$inferInsert;
@@ -72,3 +89,6 @@ export type InsertVisualization = z.infer<typeof insertVisualizationSchema>;
 
 export type Message = typeof messages.$inferSelect;
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
+
+export type GeneratedVisualization = typeof generatedVisualizations.$inferSelect;
+export type InsertGeneratedVisualization = z.infer<typeof insertGeneratedVisualizationSchema>;
