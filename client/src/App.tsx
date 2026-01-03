@@ -10,6 +10,7 @@ import VisualizationDetail from "@/pages/VisualizationDetail";
 import StaticReport from "@/pages/StaticReport";
 import Landing from "@/pages/Landing";
 import Create from "@/pages/Create";
+import SharedCreate from "@/pages/SharedCreate";
 import NotFound from "@/pages/not-found";
 
 // Use the shared query client
@@ -38,6 +39,7 @@ function Router() {
         </>
       )}
       <Route path="/report/:shareId" component={StaticReport} />
+      <Route path="/create-viz/share/:shareId" component={SharedCreate} />
       <Route component={NotFound} />
     </Switch>
   );
