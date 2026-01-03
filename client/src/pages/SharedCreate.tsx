@@ -11,7 +11,7 @@ export default function SharedCreate() {
   const shareId = params?.shareId;
 
   const { data: viz, isLoading, error } = useQuery<GeneratedVisualization>({
-    queryKey: ['/api/create-viz/share', shareId],
+    queryKey: [`/api/create-viz/share/${shareId}`],
     enabled: !!shareId,
   });
 
