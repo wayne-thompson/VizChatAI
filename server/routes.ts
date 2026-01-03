@@ -627,22 +627,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const sourceImageData = genViz.sourceImageBase64.split(",")[1];
       const sourceImageMime = genViz.sourceImageBase64.split(";")[0].split(":")[1];
 
-      // Build the prompt for Gemini
-      let prompt = `You are a data visualization expert. Analyze this screenshot of data and create 3 different professional data visualizations based on it.
+      // Build the prompt for Gemini - now requesting structured chart data instead of images
+      let prompt = `You are a data visualization expert. Analyze this screenshot containing data (could be a table, spreadsheet, chart, or any data display).
 
-The data in this image should be transformed into clear, attractive charts or graphs. For each visualization:
-1. A bar chart showing the key metrics
-2. A pie chart showing distribution/proportions
-3. A line chart or area chart showing trends if applicable
+Extract the actual data values and labels from the image, then create 3 different chart specifications that would best visualize this data.
 
-Make the visualizations clean, modern, and professional with clear labels and legends.`;
+IMPORTANT: You must respond with ONLY valid JSON, no other text. Copy all text labels and values EXACTLY as shown in the image - do not modify or abbreviate them.
+
+Return a JSON array with exactly 3 chart specifications in this format:
+[
+  {
+    "type": "bar",
+    "title": "Descriptive title for chart 1",
+    "data": [
+      {"name": "Label1", "value": 123},
+      {"name": "Label2", "value": 456}
+    ],
+    "colors": ["#3B82F6", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6"]
+  },
+  {
+    "type": "pie",
+    "title": "Descriptive title for chart 2",
+    "data": [
+      {"name": "Category A", "value": 30},
+      {"name": "Category B", "value": 70}
+    ],
+    "colors": ["#3B82F6", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6"]
+  },
+  {
+    "type": "line",
+    "title": "Descriptive title for chart 3",
+    "data": [
+      {"name": "Jan", "value": 100},
+      {"name": "Feb", "value": 150}
+    ],
+    "colors": ["#3B82F6"]
+  }
+]
+
+Chart types available: "bar", "pie", "line", "area"
+Use professional, modern color palettes. Each chart should show different aspects of the data.`;
 
       if (genViz.styleReferenceBase64) {
-        prompt += `\n\nIMPORTANT: Use the visual style from the second image as inspiration for the color scheme, design elements, and overall aesthetic.`;
+        prompt += `\n\nNote: The user has provided a style reference image. Try to match its color scheme in the "colors" array.`;
       }
 
       if (genViz.prompt) {
-        prompt += `\n\nAdditional user instructions: ${genViz.prompt}`;
+        prompt += `\n\nAdditional instructions from user: ${genViz.prompt}`;
       }
 
       // Build the content parts
@@ -668,45 +699,39 @@ Make the visualizations clean, modern, and professional with clear labels and le
         });
       }
 
-      console.log("Generating visualizations with Gemini...");
+      console.log("Generating chart specifications with Gemini...");
 
-      // Generate images using Gemini
-      const generatedImages: string[] = [];
-      
-      // Generate 3 visualizations
-      for (let i = 0; i < 3; i++) {
-        const vizPrompt = `${prompt}\n\nNow generate visualization ${i + 1} of 3. Make it unique and complementary to the others.`;
-        
-        try {
-          const response = await gemini.models.generateContent({
-            model: "gemini-2.5-flash-image",
-            contents: [{ role: "user", parts: [{ text: vizPrompt }, parts[1]] }],
-            config: {
-              responseModalities: [Modality.TEXT, Modality.IMAGE],
-            },
-          });
+      // Use text-only model for structured data extraction
+      const response = await gemini.models.generateContent({
+        model: "gemini-2.0-flash",
+        contents: [{ role: "user", parts }],
+      });
 
-          const candidate = response.candidates?.[0];
-          const imagePart = candidate?.content?.parts?.find(
-            (part: any) => part.inlineData
-          );
+      const responseText = response.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      console.log("Gemini response:", responseText.substring(0, 500));
 
-          if (imagePart?.inlineData?.data) {
-            const mimeType = imagePart.inlineData.mimeType || "image/png";
-            generatedImages.push(`data:${mimeType};base64,${imagePart.inlineData.data}`);
-          }
-        } catch (genError) {
-          console.error(`Error generating visualization ${i + 1}:`, genError);
+      // Parse the JSON response
+      let chartSpecs: any[] = [];
+      try {
+        // Try to extract JSON from the response
+        const jsonMatch = responseText.match(/\[[\s\S]*\]/);
+        if (jsonMatch) {
+          chartSpecs = JSON.parse(jsonMatch[0]);
+        } else {
+          throw new Error("No JSON array found in response");
         }
+      } catch (parseError) {
+        console.error("Failed to parse chart specs:", parseError);
+        return res.status(500).json({ message: "Failed to parse visualization data from AI response" });
       }
 
-      if (generatedImages.length === 0) {
-        return res.status(500).json({ message: "Failed to generate any visualizations" });
+      if (!Array.isArray(chartSpecs) || chartSpecs.length === 0) {
+        return res.status(500).json({ message: "No valid chart specifications generated" });
       }
 
-      // Update the record with generated images
+      // Update the record with chart specifications
       const updatedViz = await storage.updateGeneratedVisualization(id, {
-        generatedImages
+        chartSpecs
       });
 
       res.json(updatedViz);

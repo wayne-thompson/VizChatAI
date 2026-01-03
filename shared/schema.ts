@@ -63,6 +63,22 @@ export const insertMessageSchema = createInsertSchema(messages).omit({
   createdAt: true,
 });
 
+// Chart specification types for the Create feature
+export type ChartDataPoint = {
+  name: string;
+  value: number;
+  [key: string]: string | number;
+};
+
+export type ChartSpec = {
+  type: "bar" | "pie" | "line" | "area";
+  title: string;
+  data: ChartDataPoint[];
+  xAxisKey?: string;
+  dataKeys?: string[];
+  colors?: string[];
+};
+
 // Generated visualizations schema - for the Create feature
 export const generatedVisualizations = pgTable("generated_visualizations", {
   id: serial("id").primaryKey(),
@@ -70,7 +86,8 @@ export const generatedVisualizations = pgTable("generated_visualizations", {
   sourceImageBase64: text("source_image_base64").notNull(), // Original screenshot
   styleReferenceBase64: text("style_reference_base64"), // Optional style reference
   prompt: text("prompt"), // User's prompt for customization
-  generatedImages: jsonb("generated_images").$type<string[]>(), // Array of generated viz base64 strings
+  generatedImages: jsonb("generated_images").$type<string[]>(), // Legacy: base64 images (deprecated)
+  chartSpecs: jsonb("chart_specs").$type<ChartSpec[]>(), // New: structured chart specifications
   shareId: text("share_id").notNull().unique(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

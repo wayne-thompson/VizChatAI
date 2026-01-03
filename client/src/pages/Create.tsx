@@ -7,7 +7,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useMutation } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { GeneratedVisualization } from '@shared/schema';
-import { Upload, Sparkles, Download, Share2, Image, Palette, X, Loader2, Copy, Check } from 'lucide-react';
+import { Upload, Sparkles, Share2, Image, Palette, X, Loader2 } from 'lucide-react';
+import ChartRenderer from '@/components/ChartRenderer';
 
 export default function Create() {
   const { toast } = useToast();
@@ -15,7 +16,6 @@ export default function Create() {
   const [styleFile, setStyleFile] = useState<File | null>(null);
   const [prompt, setPrompt] = useState('');
   const [generatedViz, setGeneratedViz] = useState<GeneratedVisualization | null>(null);
-  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const sourceInputRef = useRef<HTMLInputElement>(null);
   const styleInputRef = useRef<HTMLInputElement>(null);
 
@@ -67,9 +67,10 @@ export default function Create() {
     },
     onSuccess: (data) => {
       setGeneratedViz(data);
+      const chartCount = data.chartSpecs?.length || 0;
       toast({
         title: 'Visualizations generated!',
-        description: `Created ${data.generatedImages?.length || 0} visualizations`,
+        description: `Created ${chartCount} chart${chartCount !== 1 ? 's' : ''}`,
       });
     },
     onError: (error) => {
@@ -127,37 +128,6 @@ export default function Create() {
     noClick: true,
   });
 
-  const handleDownload = (imageUrl: string, index: number) => {
-    const link = document.createElement('a');
-    link.href = imageUrl;
-    link.download = `visualization-${index + 1}.png`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const handleCopyToClipboard = async (imageUrl: string, index: number) => {
-    try {
-      const response = await fetch(imageUrl);
-      const blob = await response.blob();
-      await navigator.clipboard.write([
-        new ClipboardItem({ [blob.type]: blob })
-      ]);
-      setCopiedIndex(index);
-      toast({
-        title: 'Copied!',
-        description: 'Image copied to clipboard',
-      });
-      setTimeout(() => setCopiedIndex(null), 2000);
-    } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: 'Copy failed',
-        description: 'Could not copy image to clipboard',
-      });
-    }
-  };
-
   const handleShare = async () => {
     if (!generatedViz) return;
 
@@ -199,11 +169,13 @@ export default function Create() {
     setGeneratedViz(null);
   };
 
+  const hasCharts = generatedViz?.chartSpecs && generatedViz.chartSpecs.length > 0;
+
   return (
     <div className="min-h-[calc(100vh-64px)] bg-gradient-to-br from-slate-50 via-white to-blue-50 p-6 md:p-8">
       <div className="max-w-6xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-800 mb-2">Create Visualizations</h1>
+          <h1 className="text-3xl font-bold text-slate-800 mb-2" data-testid="text-page-title">Create Visualizations</h1>
           <p className="text-slate-500">
             Upload a screenshot of your data and let AI generate beautiful visualizations for you
           </p>
@@ -213,7 +185,7 @@ export default function Create() {
           {/* Left Column: Upload Section */}
           <div className="space-y-6">
             {/* Source Image Upload */}
-            <Card>
+            <Card data-testid="card-source-upload">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
                   <Image className="h-5 w-5 text-blue-600" />
@@ -230,6 +202,7 @@ export default function Create() {
                       : 'border-slate-200 hover:border-blue-400 hover:bg-slate-50'
                     }
                   `}
+                  data-testid="dropzone-source"
                 >
                   <input {...sourceDropzone.getInputProps()} />
                   <input
@@ -251,6 +224,7 @@ export default function Create() {
                         src={URL.createObjectURL(sourceFile)}
                         alt="Source preview"
                         className="max-h-48 mx-auto rounded-lg"
+                        data-testid="img-source-preview"
                       />
                       <Button
                         type="button"
@@ -290,7 +264,7 @@ export default function Create() {
             </Card>
 
             {/* Style Reference Upload */}
-            <Card>
+            <Card data-testid="card-style-upload">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
                   <Palette className="h-5 w-5 text-purple-600" />
@@ -307,6 +281,7 @@ export default function Create() {
                       : 'border-slate-200 hover:border-purple-400 hover:bg-slate-50'
                     }
                   `}
+                  data-testid="dropzone-style"
                 >
                   <input {...styleDropzone.getInputProps()} />
                   <input
@@ -328,6 +303,7 @@ export default function Create() {
                         src={URL.createObjectURL(styleFile)}
                         alt="Style preview"
                         className="max-h-32 mx-auto rounded-lg"
+                        data-testid="img-style-preview"
                       />
                       <Button
                         type="button"
@@ -351,7 +327,7 @@ export default function Create() {
                         Upload a chart style you like
                       </p>
                       <p className="text-xs text-slate-400 mb-3">
-                        The AI will match this visual style
+                        The AI will match this color scheme
                       </p>
                       <Button
                         type="button"
@@ -368,13 +344,13 @@ export default function Create() {
             </Card>
 
             {/* Custom Prompt */}
-            <Card>
+            <Card data-testid="card-prompt">
               <CardHeader>
                 <CardTitle className="text-lg">Additional Instructions</CardTitle>
               </CardHeader>
               <CardContent>
                 <Textarea
-                  placeholder="E.g., Use a dark theme, focus on the monthly trends, make it suitable for a presentation..."
+                  placeholder="E.g., Focus on monthly trends, compare categories by percentage, use a dark color scheme..."
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   className="min-h-[100px]"
@@ -406,11 +382,11 @@ export default function Create() {
 
           {/* Right Column: Results */}
           <div>
-            <Card className="h-full">
+            <Card className="h-full" data-testid="card-results">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg">Generated Visualizations</CardTitle>
-                  {generatedViz?.generatedImages && generatedViz.generatedImages.length > 0 && (
+                  {hasCharts && (
                     <div className="flex gap-2">
                       <Button
                         variant="outline"
@@ -435,62 +411,23 @@ export default function Create() {
               </CardHeader>
               <CardContent>
                 {isLoading ? (
-                  <div className="flex flex-col items-center justify-center py-16">
+                  <div className="flex flex-col items-center justify-center py-16" data-testid="loading-state">
                     <Loader2 className="h-12 w-12 animate-spin text-blue-600 mb-4" />
                     <p className="text-slate-600 font-medium">
-                      {createMutation.isPending ? 'Uploading your data...' : 'Creating beautiful visualizations...'}
+                      {createMutation.isPending ? 'Uploading your data...' : 'Analyzing and creating charts...'}
                     </p>
                     <p className="text-sm text-slate-400 mt-1">
-                      This may take a minute
+                      This may take a moment
                     </p>
                   </div>
-                ) : generatedViz?.generatedImages && generatedViz.generatedImages.length > 0 ? (
-                  <div className="space-y-6">
-                    {generatedViz.generatedImages.map((img, index) => (
-                      <div
-                        key={index}
-                        className="relative group rounded-xl overflow-hidden border border-slate-200 shadow-sm"
-                        data-testid={`img-generated-${index}`}
-                      >
-                        <img
-                          src={img}
-                          alt={`Generated visualization ${index + 1}`}
-                          className="w-full"
-                        />
-                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={() => handleDownload(img, index)}
-                            data-testid={`button-download-${index}`}
-                          >
-                            <Download className="h-4 w-4 mr-1" />
-                            Download
-                          </Button>
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={() => handleCopyToClipboard(img, index)}
-                            data-testid={`button-copy-${index}`}
-                          >
-                            {copiedIndex === index ? (
-                              <>
-                                <Check className="h-4 w-4 mr-1" />
-                                Copied
-                              </>
-                            ) : (
-                              <>
-                                <Copy className="h-4 w-4 mr-1" />
-                                Copy
-                              </>
-                            )}
-                          </Button>
-                        </div>
-                      </div>
+                ) : hasCharts ? (
+                  <div className="space-y-6" data-testid="charts-container">
+                    {generatedViz.chartSpecs!.map((spec, index) => (
+                      <ChartRenderer key={index} spec={spec} index={index} />
                     ))}
                   </div>
                 ) : (
-                  <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <div className="flex flex-col items-center justify-center py-16 text-center" data-testid="empty-state">
                     <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mb-4">
                       <Sparkles className="h-8 w-8 text-slate-400" />
                     </div>
