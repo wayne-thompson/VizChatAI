@@ -136,6 +136,17 @@ export default function Layout({ children }: LayoutProps) {
                 Archive
               </Link>
               <Link 
+                href="/create" 
+                className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center ${
+                  location === '/create' 
+                    ? 'bg-purple-50 text-purple-600' 
+                    : 'text-slate-600 hover:text-purple-600 hover:bg-slate-50'
+                }`}
+              >
+                <i className="fas fa-magic mr-2"></i>
+                Create
+              </Link>
+              <Link 
                 href="/account" 
                 className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center ${
                   location === '/account' 

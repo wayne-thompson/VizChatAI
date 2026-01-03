@@ -9,6 +9,7 @@ import Account from "@/pages/Account";
 import VisualizationDetail from "@/pages/VisualizationDetail";
 import StaticReport from "@/pages/StaticReport";
 import Landing from "@/pages/Landing";
+import Create from "@/pages/Create";
 import NotFound from "@/pages/not-found";
 
 // Use the shared query client
@@ -31,6 +32,7 @@ function Router() {
         <>
           <Route path="/" component={Home} />
           <Route path="/projects" component={Projects} />
+          <Route path="/create" component={Create} />
           <Route path="/account" component={Account} />
           <Route path="/visualization/:id" component={VisualizationDetail} />
         </>
