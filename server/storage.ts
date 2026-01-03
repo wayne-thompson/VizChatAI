@@ -1,9 +1,10 @@
 import { v4 as uuidv4 } from 'uuid';
 import {
-  users, messages, visualizations,
+  users, messages, visualizations, generatedVisualizations,
   User, UpsertUser,
   Visualization, InsertVisualization,
-  Message, InsertMessage
+  Message, InsertMessage,
+  GeneratedVisualization, InsertGeneratedVisualization
 } from '@shared/schema';
 import { db } from './db';
 import { eq, desc } from 'drizzle-orm';
@@ -24,23 +25,34 @@ export interface IStorage {
   
   createMessage(message: InsertMessage): Promise<Message>;
   getMessagesByVisualization(visualizationId: number): Promise<Message[]>;
+  
+  // Generated visualizations (Create feature)
+  createGeneratedVisualization(data: InsertGeneratedVisualization): Promise<GeneratedVisualization>;
+  getGeneratedVisualization(id: number): Promise<GeneratedVisualization | undefined>;
+  getGeneratedVisualizationByShareId(shareId: string): Promise<GeneratedVisualization | undefined>;
+  updateGeneratedVisualization(id: number, data: Partial<GeneratedVisualization>): Promise<GeneratedVisualization | undefined>;
+  getAllGeneratedVisualizations(userId?: string): Promise<GeneratedVisualization[]>;
 }
 
 export class MemStorage implements IStorage {
   private users: Map<string, User>;
   private visualizations: Map<number, Visualization>;
   private messages: Map<number, Message>;
+  private generatedVizs: Map<number, GeneratedVisualization>;
 
   private visualizationCurrentId: number;
   private messageCurrentId: number;
+  private generatedVizCurrentId: number;
 
   constructor() {
     this.users = new Map();
     this.visualizations = new Map();
     this.messages = new Map();
+    this.generatedVizs = new Map();
 
     this.visualizationCurrentId = 1;
     this.messageCurrentId = 1;
+    this.generatedVizCurrentId = 1;
   }
 
   // User methods
@@ -166,6 +178,47 @@ export class MemStorage implements IStorage {
     return Array.from(this.messages.values())
       .filter(message => message.visualizationId === visualizationId)
       .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+  }
+
+  // Generated visualization methods (MemStorage)
+  async createGeneratedVisualization(data: InsertGeneratedVisualization): Promise<GeneratedVisualization> {
+    const id = this.generatedVizCurrentId++;
+    const newViz: GeneratedVisualization = {
+      id,
+      userId: data.userId ?? null,
+      sourceImageBase64: data.sourceImageBase64,
+      styleReferenceBase64: data.styleReferenceBase64 ?? null,
+      prompt: data.prompt ?? null,
+      generatedImages: data.generatedImages ?? null,
+      shareId: data.shareId || uuidv4(),
+      createdAt: new Date()
+    };
+    this.generatedVizs.set(id, newViz);
+    return newViz;
+  }
+
+  async getGeneratedVisualization(id: number): Promise<GeneratedVisualization | undefined> {
+    return this.generatedVizs.get(id);
+  }
+
+  async getGeneratedVisualizationByShareId(shareId: string): Promise<GeneratedVisualization | undefined> {
+    return Array.from(this.generatedVizs.values()).find(v => v.shareId === shareId);
+  }
+
+  async updateGeneratedVisualization(id: number, data: Partial<GeneratedVisualization>): Promise<GeneratedVisualization | undefined> {
+    const viz = this.generatedVizs.get(id);
+    if (!viz) return undefined;
+    const updated = { ...viz, ...data };
+    this.generatedVizs.set(id, updated);
+    return updated;
+  }
+
+  async getAllGeneratedVisualizations(userId?: string): Promise<GeneratedVisualization[]> {
+    const all = Array.from(this.generatedVizs.values());
+    if (userId) {
+      return all.filter(v => v.userId === userId).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    }
+    return all.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }
 }
 
@@ -309,6 +362,50 @@ export class DatabaseStorage implements IStorage {
       .from(messages)
       .where(eq(messages.visualizationId, visualizationId))
       .orderBy(messages.createdAt);
+  }
+
+  // Generated visualization methods (Create feature)
+  async createGeneratedVisualization(data: InsertGeneratedVisualization): Promise<GeneratedVisualization> {
+    const vizData = {
+      ...data,
+      shareId: data.shareId || uuidv4(),
+      createdAt: new Date()
+    };
+    const [newViz] = await db.insert(generatedVisualizations).values(vizData).returning();
+    return newViz;
+  }
+
+  async getGeneratedVisualization(id: number): Promise<GeneratedVisualization | undefined> {
+    const [viz] = await db.select().from(generatedVisualizations).where(eq(generatedVisualizations.id, id));
+    return viz;
+  }
+
+  async getGeneratedVisualizationByShareId(shareId: string): Promise<GeneratedVisualization | undefined> {
+    const [viz] = await db.select().from(generatedVisualizations).where(eq(generatedVisualizations.shareId, shareId));
+    return viz;
+  }
+
+  async updateGeneratedVisualization(id: number, data: Partial<GeneratedVisualization>): Promise<GeneratedVisualization | undefined> {
+    const [updated] = await db
+      .update(generatedVisualizations)
+      .set(data)
+      .where(eq(generatedVisualizations.id, id))
+      .returning();
+    return updated;
+  }
+
+  async getAllGeneratedVisualizations(userId?: string): Promise<GeneratedVisualization[]> {
+    if (userId) {
+      return await db
+        .select()
+        .from(generatedVisualizations)
+        .where(eq(generatedVisualizations.userId, userId))
+        .orderBy(desc(generatedVisualizations.createdAt));
+    }
+    return await db
+      .select()
+      .from(generatedVisualizations)
+      .orderBy(desc(generatedVisualizations.createdAt));
   }
 }
 

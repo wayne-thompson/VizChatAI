@@ -4,15 +4,26 @@ import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { v4 as uuidv4 } from 'uuid';
 import OpenAI from "openai";
+import { GoogleGenAI, Modality } from "@google/genai";
 import { 
   insertVisualizationSchema, 
-  insertMessageSchema 
+  insertMessageSchema,
+  insertGeneratedVisualizationSchema
 } from "@shared/schema";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+
+// Initialize Gemini with Replit AI Integrations
+const gemini = new GoogleGenAI({
+  apiKey: process.env.AI_INTEGRATIONS_GEMINI_API_KEY || "",
+  httpOptions: {
+    apiVersion: "",
+    baseUrl: process.env.AI_INTEGRATIONS_GEMINI_BASE_URL,
+  },
+});
 
 // Initialize OpenAI
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || "" });
@@ -552,6 +563,202 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.error("Error sending message:", error);
       res.status(500).json({ message: "Error sending message" });
+    }
+  });
+
+  // ============================================
+  // CREATE VISUALIZATION FEATURE ROUTES
+  // ============================================
+
+  // Create a new generated visualization (upload source image + optional style reference)
+  app.post("/api/create-viz", isAuthenticated, upload.fields([
+    { name: "sourceImage", maxCount: 1 },
+    { name: "styleReference", maxCount: 1 }
+  ]), async (req: any, res: Response) => {
+    try {
+      const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+      
+      if (!files.sourceImage || files.sourceImage.length === 0) {
+        return res.status(400).json({ message: "Source image is required" });
+      }
+
+      // Convert source image to base64
+      const sourceFile = files.sourceImage[0];
+      const sourceBase64 = `data:${sourceFile.mimetype};base64,${sourceFile.buffer.toString("base64")}`;
+
+      // Convert style reference to base64 if provided
+      let styleBase64: string | undefined;
+      if (files.styleReference && files.styleReference.length > 0) {
+        const styleFile = files.styleReference[0];
+        styleBase64 = `data:${styleFile.mimetype};base64,${styleFile.buffer.toString("base64")}`;
+      }
+
+      const prompt = req.body.prompt || "";
+      const shareId = uuidv4();
+
+      // Create the generated visualization record
+      const genViz = await storage.createGeneratedVisualization({
+        userId: req.user.claims.sub,
+        sourceImageBase64: sourceBase64,
+        styleReferenceBase64: styleBase64 || null,
+        prompt: prompt,
+        generatedImages: null,
+        shareId
+      });
+
+      res.status(201).json(genViz);
+    } catch (error) {
+      console.error("Error creating visualization:", error);
+      res.status(500).json({ message: "Error creating visualization" });
+    }
+  });
+
+  // Generate visualizations using Gemini
+  app.post("/api/create-viz/:id/generate", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const genViz = await storage.getGeneratedVisualization(id);
+
+      if (!genViz) {
+        return res.status(404).json({ message: "Generated visualization not found" });
+      }
+
+      // Extract base64 data from data URL
+      const sourceImageData = genViz.sourceImageBase64.split(",")[1];
+      const sourceImageMime = genViz.sourceImageBase64.split(";")[0].split(":")[1];
+
+      // Build the prompt for Gemini
+      let prompt = `You are a data visualization expert. Analyze this screenshot of data and create 3 different professional data visualizations based on it.
+
+The data in this image should be transformed into clear, attractive charts or graphs. For each visualization:
+1. A bar chart showing the key metrics
+2. A pie chart showing distribution/proportions
+3. A line chart or area chart showing trends if applicable
+
+Make the visualizations clean, modern, and professional with clear labels and legends.`;
+
+      if (genViz.styleReferenceBase64) {
+        prompt += `\n\nIMPORTANT: Use the visual style from the second image as inspiration for the color scheme, design elements, and overall aesthetic.`;
+      }
+
+      if (genViz.prompt) {
+        prompt += `\n\nAdditional user instructions: ${genViz.prompt}`;
+      }
+
+      // Build the content parts
+      const parts: any[] = [
+        { text: prompt },
+        {
+          inlineData: {
+            mimeType: sourceImageMime,
+            data: sourceImageData
+          }
+        }
+      ];
+
+      // Add style reference if provided
+      if (genViz.styleReferenceBase64) {
+        const styleImageData = genViz.styleReferenceBase64.split(",")[1];
+        const styleImageMime = genViz.styleReferenceBase64.split(";")[0].split(":")[1];
+        parts.push({
+          inlineData: {
+            mimeType: styleImageMime,
+            data: styleImageData
+          }
+        });
+      }
+
+      console.log("Generating visualizations with Gemini...");
+
+      // Generate images using Gemini
+      const generatedImages: string[] = [];
+      
+      // Generate 3 visualizations
+      for (let i = 0; i < 3; i++) {
+        const vizPrompt = `${prompt}\n\nNow generate visualization ${i + 1} of 3. Make it unique and complementary to the others.`;
+        
+        try {
+          const response = await gemini.models.generateContent({
+            model: "gemini-2.5-flash-image",
+            contents: [{ role: "user", parts: [{ text: vizPrompt }, parts[1]] }],
+            config: {
+              responseModalities: [Modality.TEXT, Modality.IMAGE],
+            },
+          });
+
+          const candidate = response.candidates?.[0];
+          const imagePart = candidate?.content?.parts?.find(
+            (part: any) => part.inlineData
+          );
+
+          if (imagePart?.inlineData?.data) {
+            const mimeType = imagePart.inlineData.mimeType || "image/png";
+            generatedImages.push(`data:${mimeType};base64,${imagePart.inlineData.data}`);
+          }
+        } catch (genError) {
+          console.error(`Error generating visualization ${i + 1}:`, genError);
+        }
+      }
+
+      if (generatedImages.length === 0) {
+        return res.status(500).json({ message: "Failed to generate any visualizations" });
+      }
+
+      // Update the record with generated images
+      const updatedViz = await storage.updateGeneratedVisualization(id, {
+        generatedImages
+      });
+
+      res.json(updatedViz);
+    } catch (error) {
+      console.error("Error generating visualizations:", error);
+      res.status(500).json({ message: "Error generating visualizations" });
+    }
+  });
+
+  // Get all generated visualizations for user
+  app.get("/api/create-viz", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = req.user.claims.sub;
+      const vizs = await storage.getAllGeneratedVisualizations(userId);
+      res.json(vizs);
+    } catch (error) {
+      console.error("Error fetching generated visualizations:", error);
+      res.status(500).json({ message: "Error fetching generated visualizations" });
+    }
+  });
+
+  // Get a specific generated visualization
+  app.get("/api/create-viz/:id", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const viz = await storage.getGeneratedVisualization(id);
+
+      if (!viz) {
+        return res.status(404).json({ message: "Generated visualization not found" });
+      }
+
+      res.json(viz);
+    } catch (error) {
+      console.error("Error fetching generated visualization:", error);
+      res.status(500).json({ message: "Error fetching generated visualization" });
+    }
+  });
+
+  // Get generated visualization by share ID (public access)
+  app.get("/api/create-viz/share/:shareId", async (req: Request, res: Response) => {
+    try {
+      const { shareId } = req.params;
+      const viz = await storage.getGeneratedVisualizationByShareId(shareId);
+
+      if (!viz) {
+        return res.status(404).json({ message: "Shared visualization not found" });
+      }
+
+      res.json(viz);
+    } catch (error) {
+      console.error("Error fetching shared visualization:", error);
+      res.status(500).json({ message: "Error fetching shared visualization" });
     }
   });
 
