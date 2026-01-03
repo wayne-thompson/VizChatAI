@@ -4,6 +4,11 @@
 VizChat is a web application that enables users to upload images of data visualizations (charts, graphs, dashboards) and interact with them through AI. The core functionality allows users to receive AI-generated insights about their visualizations and chat with an AI assistant named "Data Vizard" about the data.
 
 ## Recent Changes
+- **January 3, 2026**: Added "Create" feature - AI-powered visualization generation using Google Gemini
+  - Upload a data screenshot (required) and optionally a style reference image
+  - Gemini generates 3 unique professional data visualizations
+  - Download, copy to clipboard, or share generated visualizations via public link
+  - Accessible via "Create" link in navigation with magic wand icon
 - **October 3, 2025**: Enhanced Archive page with date range filter - select start and end dates to filter visualizations
 - **October 3, 2025**: Added individual checkbox selection on Archive cards - select multiple visualizations without opening them
 - **October 3, 2025**: Implemented bulk delete functionality - delete multiple selected visualizations at once
@@ -41,6 +46,7 @@ VizChat is a web application that enables users to upload images of data visuali
 - **sessions**: Manages user sessions for authentication
 - **visualizations**: Stores uploaded charts and AI analysis results
 - **messages**: Chat history between users and Data Vizard
+- **generated_visualizations**: Stores AI-generated visualization images from the Create feature
 
 ### Core Features
 - Single and multi-visualization upload
