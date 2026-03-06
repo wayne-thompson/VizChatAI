@@ -6,8 +6,11 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
-// Initialize Google Gemini
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+// Initialize Google Gemini (using Replit AI Integrations)
+const geminiApiKey = process.env.AI_INTEGRATIONS_GEMINI_API_KEY || process.env.GEMINI_API_KEY || "";
+const geminiBaseUrl = process.env.AI_INTEGRATIONS_GEMINI_BASE_URL;
+const genAI = new GoogleGenerativeAI(geminiApiKey);
+const geminiRequestOptions = geminiBaseUrl ? { baseUrl: geminiBaseUrl } : {};
 
 // Initialize XAI
 const xai = new OpenAI({
@@ -142,9 +145,8 @@ async function analyzeWithGemini(imageBase64: string): Promise<{ summary: string
   try {
     console.log("Analyzing with Google Gemini");
     
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }, geminiRequestOptions);
     
-    // Extract base64 data without prefix
     const base64Data = imageBase64.includes(',') 
       ? imageBase64.split(',')[1] 
       : imageBase64;
@@ -194,7 +196,7 @@ async function chatWithGemini(
   chatHistory: Array<{ role: string; content: string }>
 ): Promise<string> {
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }, geminiRequestOptions);
     
     const base64Data = imageBase64.includes(',') 
       ? imageBase64.split(',')[1] 
@@ -242,7 +244,7 @@ async function analyzeWithXAI(imageBase64: string): Promise<{ summary: string; p
       : `data:image/jpeg;base64,${imageBase64}`;
     
     const response = await xai.chat.completions.create({
-      model: "grok-2-vision-latest",
+      model: "grok-4-0709",
       messages: [
         {
           role: "system",
@@ -311,7 +313,7 @@ async function chatWithXAI(
     ];
     
     const response = await xai.chat.completions.create({
-      model: "grok-2-vision-latest",
+      model: "grok-4-0709",
       messages: messages as any,
       max_tokens: 1000
     });
@@ -369,7 +371,7 @@ async function generateComprehensiveWithOpenAI(prompt: string): Promise<{ summar
 
 async function generateComprehensiveWithGemini(prompt: string): Promise<{ summary: string; points: string[] }> {
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }, geminiRequestOptions);
     
     const result = await model.generateContent(prompt);
     const response = await result.response;
@@ -398,7 +400,7 @@ async function generateComprehensiveWithGemini(prompt: string): Promise<{ summar
 async function generateComprehensiveWithXAI(prompt: string): Promise<{ summary: string; points: string[] }> {
   try {
     const response = await xai.chat.completions.create({
-      model: "grok-2-latest",
+      model: "grok-3",
       messages: [
         {
           role: "system",
