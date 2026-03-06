@@ -242,7 +242,7 @@ async function analyzeWithXAI(imageBase64: string): Promise<{ summary: string; p
       : `data:image/jpeg;base64,${imageBase64}`;
     
     const response = await xai.chat.completions.create({
-      model: "grok-2-vision-1212",
+      model: "grok-2-vision-latest",
       messages: [
         {
           role: "system",
@@ -311,7 +311,7 @@ async function chatWithXAI(
     ];
     
     const response = await xai.chat.completions.create({
-      model: "grok-2-vision-1212",
+      model: "grok-2-vision-latest",
       messages: messages as any,
       max_tokens: 1000
     });
@@ -398,7 +398,7 @@ async function generateComprehensiveWithGemini(prompt: string): Promise<{ summar
 async function generateComprehensiveWithXAI(prompt: string): Promise<{ summary: string; points: string[] }> {
   try {
     const response = await xai.chat.completions.create({
-      model: "grok-2-1212",
+      model: "grok-2-latest",
       messages: [
         {
           role: "system",
