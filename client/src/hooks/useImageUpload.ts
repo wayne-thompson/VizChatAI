@@ -11,14 +11,19 @@ export function useImageUpload() {
   const [isUploading, setIsUploading] = useState(false);
   const [isGeneratingInsights, setIsGeneratingInsights] = useState(false);
   const [projectGroup, setProjectGroup] = useState<string | null>(null);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
 
   const uploadMultipleImages = async (files: File[]): Promise<Visualization[]> => {
+    let uploaded = false;
     try {
+      setAnalysisError(null);
+      setSummary(null);
       setIsUploading(true);
       setIsGeneratingInsights(true);
       
       // Upload all files as a project
       const uploadedVizs = await uploadMultipleVisualizations(files);
+      uploaded = true;
       setVisualizations(uploadedVizs);
       
       // Set the first visualization as the primary one for chat
@@ -50,9 +55,10 @@ export function useImageUpload() {
       
       return uploadedVizs;
     } catch (error) {
+      if (uploaded) setAnalysisError(error instanceof Error ? error.message : "Analysis failed. Please retry.");
       toast({
         variant: "destructive",
-        title: "Upload failed",
+        title: uploaded ? "Analysis failed" : "Upload failed",
         description: error instanceof Error ? error.message : "Failed to upload images",
       });
       throw error;
@@ -63,12 +69,18 @@ export function useImageUpload() {
   };
 
   const uploadImage = async (file: File): Promise<Visualization> => {
+    let uploaded = false;
     try {
+      setAnalysisError(null);
+      setSummary(null);
+      setVisualizations([]);
+      setProjectGroup(null);
       setIsUploading(true);
       setIsGeneratingInsights(true);
       
       // Upload the image
       const uploadedViz = await uploadVisualization(file);
+      uploaded = true;
       setVisualization(uploadedViz);
       
       // Automatically analyze after upload
@@ -85,9 +97,10 @@ export function useImageUpload() {
       
       return uploadedViz;
     } catch (error) {
+      if (uploaded) setAnalysisError(error instanceof Error ? error.message : "Analysis failed. Please retry.");
       toast({
         variant: "destructive",
-        title: "Upload failed",
+        title: uploaded ? "Analysis failed" : "Upload failed",
         description: error instanceof Error ? error.message : "Failed to upload image",
       });
       throw error;
@@ -99,6 +112,7 @@ export function useImageUpload() {
 
   const generateInsights = async (): Promise<void> => {
     try {
+      setAnalysisError(null);
       setIsGeneratingInsights(true);
       
       // If multiple visualizations exist, analyze as a project
@@ -123,6 +137,7 @@ export function useImageUpload() {
         });
       }
     } catch (error) {
+      setAnalysisError(error instanceof Error ? error.message : "Analysis failed. Please retry.");
       toast({
         variant: "destructive",
         title: "Analysis failed",
@@ -138,6 +153,7 @@ export function useImageUpload() {
     setVisualizations([]);
     setSummary(null);
     setProjectGroup(null);
+    setAnalysisError(null);
   };
 
   return {
@@ -150,6 +166,7 @@ export function useImageUpload() {
     uploadMultipleImages,
     generateInsights,
     projectGroup,
+    analysisError,
     resetSession
   };
 }

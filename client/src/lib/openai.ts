@@ -103,7 +103,7 @@ export async function analyzeProject(projectGroup: string): Promise<ProjectAnaly
     });
   } catch (error) {
     console.error("Error analyzing project:", error);
-    throw new Error("Failed to analyze project. Please try again.");
+    throw error;
   }
 }
 
@@ -115,7 +115,7 @@ export async function analyzeVisualization(id: number): Promise<AnalysisResult> 
     });
   } catch (error) {
     console.error("Error analyzing visualization:", error);
-    throw new Error("Failed to analyze visualization. Please try again.");
+    throw error;
   }
 }
 

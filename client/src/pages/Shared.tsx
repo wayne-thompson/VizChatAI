@@ -17,7 +17,7 @@ export default function Shared() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error } = useQuery<{ visualization: Visualization; messages: Message[] }>({
     queryKey: [`/api/share/${params?.shareId}`],
     enabled: !!params?.shareId,
   });
@@ -113,7 +113,6 @@ export default function Shared() {
         <PreviewSection 
           visualization={data.visualization} 
           summary={data.visualization.initialSummary ? JSON.parse(data.visualization.initialSummary) : null}
-          onGenerateInsights={async () => {}}
           isGenerating={false}
         />
         

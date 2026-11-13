@@ -37,7 +37,8 @@ export default function Create() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to create visualization');
+        const error = await response.json().catch(() => null);
+        throw new Error(error?.message || 'Failed to create visualization');
       }
 
       return response.json() as Promise<GeneratedVisualization>;

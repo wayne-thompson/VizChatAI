@@ -20,6 +20,7 @@ export default function VisualizationDetail() {
   const queryClient = useQueryClient();
   const [summary, setSummary] = useState<{ summary: string; points: string[] } | null>(null);
   const [isGeneratingInsights, setIsGeneratingInsights] = useState(false);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
   
   // No need for "New" button handling - it's now managed in the Layout component
 
@@ -63,20 +64,24 @@ export default function VisualizationDetail() {
     if (!visualization || isGeneratingInsights) return;
     
     setIsGeneratingInsights(true);
+    setAnalysisError(null);
     
     try {
-      const result = await apiRequest<{ visualization: Visualization; summary: { summary: string; points: string[] } }>(
-        `/api/visualizations/${id}/analyze`,
+      const result = await apiRequest<{ visualization?: Visualization; summary: { summary: string; points: string[] } }>(
+        visualization.projectGroup
+          ? `/api/visualizations/project/${visualization.projectGroup}/analyze`
+          : `/api/visualizations/${id}/analyze`,
         { method: 'POST' }
       );
       
       setSummary(result.summary);
       
       // Update the visualization in the cache
-      queryClient.setQueryData([`/api/visualizations/${id}`], result.visualization);
+      queryClient.setQueryData([`/api/visualizations/${id}`],
+        result.visualization || { ...visualization, initialSummary: JSON.stringify(result.summary) });
       
     } catch (error) {
-      console.error("Failed to generate insights:", error);
+      setAnalysisError(error instanceof Error ? error.message : "Analysis failed. Please retry.");
     } finally {
       setIsGeneratingInsights(false);
     }
@@ -154,6 +159,13 @@ export default function VisualizationDetail() {
             onGenerateInsights={generateInsights}
             isGenerating={isGeneratingInsights}
           />
+          {analysisError && (
+            <div role="alert" className="my-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-900">
+              <p className="font-semibold">Analysis could not be completed</p>
+              <p className="mt-1">{analysisError}</p>
+              <p className="mt-1">Your previously saved report is unchanged. Use Reanalyze to retry.</p>
+            </div>
+          )}
           
           <ShareSection 
             visualization={visualization} 

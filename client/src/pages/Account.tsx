@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function Account() {
   const { user, isAuthenticated } = useAuth();
@@ -14,6 +14,10 @@ export default function Account() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedProvider, setSelectedProvider] = useState<string>(typedUser?.llmProvider || "openai");
+
+  useEffect(() => {
+    setSelectedProvider(typedUser?.llmProvider || "openai");
+  }, [typedUser?.llmProvider]);
 
   const updateLlmMutation = useMutation({
     mutationFn: async (provider: string) => {
@@ -30,6 +34,7 @@ export default function Account() {
       queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
     },
     onError: (error) => {
+      setSelectedProvider(typedUser?.llmProvider || "openai");
       toast({
         variant: "destructive",
         title: "Update failed",

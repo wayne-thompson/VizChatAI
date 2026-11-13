@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import React, { useRef } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -13,6 +13,9 @@ export default function Layout({ children }: LayoutProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const { isAuthenticated } = useAuth();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  useEffect(() => setMobileMenuOpen(false), [location]);
   
   // Check if we're on a report page
   const isReportPage = location.startsWith('/report/');
@@ -177,11 +180,38 @@ export default function Layout({ children }: LayoutProps) {
                   New Visualization
                 </button>
               )}
-              <button className="md:hidden text-slate-600 p-2 hover:bg-slate-100 rounded-lg transition-colors">
+              <button
+                type="button"
+                className="md:hidden text-slate-600 p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                aria-label={mobileMenuOpen ? "Close navigation" : "Open navigation"}
+                aria-controls="mobile-navigation"
+                aria-expanded={mobileMenuOpen}
+                onClick={() => setMobileMenuOpen(open => !open)}
+              >
                 <i className="fas fa-bars text-xl"></i>
               </button>
             </div>
           </div>
+          {mobileMenuOpen && (
+            <nav id="mobile-navigation" aria-label="Mobile navigation" className="md:hidden flex flex-col gap-1 border-t border-slate-200 py-3">
+              {[
+                { href: "/", label: "Home" },
+                { href: "/projects", label: "Archive" },
+                { href: "/create", label: "Create" },
+                { href: "/account", label: "Account" },
+              ].map(item => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  aria-current={location === item.href ? "page" : undefined}
+                  className={`rounded-lg px-4 py-3 font-medium ${location === item.href ? "bg-blue-50 text-blue-600" : "text-slate-600 hover:bg-slate-50"}`}
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </nav>
+          )}
         </div>
       </header>
 

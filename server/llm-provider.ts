@@ -1,450 +1,153 @@
 import OpenAI from "openai";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI, type Content, type Part } from "@google/genai";
+import {
+  AI_MODELS, AIRequestError, type AIProvider, type ChartAnalysis,
+  parseAnalysis, parseImage, requireText, toAIError,
+} from "./ai-utils";
 
-// Initialize OpenAI
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-});
+type ChatMessage = { role: string; content: string };
+type OpenAIMessage = OpenAI.Chat.Completions.ChatCompletionMessageParam;
 
-// Initialize Google Gemini (using Replit AI Integrations)
-const geminiApiKey = process.env.AI_INTEGRATIONS_GEMINI_API_KEY || process.env.GEMINI_API_KEY || "";
-const geminiBaseUrl = process.env.AI_INTEGRATIONS_GEMINI_BASE_URL;
-const genAI = new GoogleGenerativeAI(geminiApiKey);
-const geminiRequestOptions = geminiBaseUrl ? { baseUrl: geminiBaseUrl } : {};
+const analysisInstruction = "You are an expert data visualization analyst. Describe only the information visible in the supplied charts. Do not invent values or causal explanations. Return JSON with a 'summary' paragraph and a 'points' array of 3-5 nonempty strings containing chart-specific observations.";
+const chatInstruction = "You are Data Vizard, a friendly expert data visualization analyst. Answer questions using the supplied chart images and previous conversation. Refer to visible labels, values, trends and comparisons. When something cannot be read or established from the charts, say so. If several charts are supplied, consider all of them.";
 
-// Initialize XAI
-const xai = new OpenAI({
-  apiKey: process.env.XAI_API_KEY,
-  baseURL: "https://api.x.ai/v1"
-});
+function providerName(provider: string): AIProvider {
+  if (provider === "google" || provider === "openai" || provider === "xai") return provider;
+  throw new AIRequestError("Select a supported AI provider in Account Settings.", "AI_INVALID_PROVIDER", 400);
+}
 
-// Analyze visualization with selected LLM provider
-export async function analyzeVisualization(
-  imageBase64: string,
-  provider: string = "openai"
-): Promise<{ summary: string; points: string[] }> {
-  switch (provider) {
-    case "google":
-      return analyzeWithGemini(imageBase64);
-    case "xai":
-      return analyzeWithXAI(imageBase64);
-    case "openai":
-    default:
-      return analyzeWithOpenAI(imageBase64);
+// Clients are initialized only for the selected provider. An unconfigured,
+// unrelated provider must not prevent the configured provider from working.
+function openAIClient(provider: "openai" | "xai"): OpenAI {
+  const key = provider === "openai" ? process.env.OPENAI_API_KEY : process.env.XAI_API_KEY;
+  if (!key) throw new AIRequestError(`${provider === "openai" ? "OpenAI" : "xAI"} is not configured. Select another provider in Account Settings.`, "AI_NOT_CONFIGURED", 503, provider);
+  return new OpenAI({
+    apiKey: key,
+    ...(provider === "xai" ? { baseURL: "https://api.x.ai/v1" } : {}),
+    timeout: 60000,
+    maxRetries: 1,
+  });
+}
+
+function geminiClient(): GoogleGenAI {
+  const key = process.env.AI_INTEGRATIONS_GEMINI_API_KEY;
+  const baseUrl = process.env.AI_INTEGRATIONS_GEMINI_BASE_URL;
+  if (key || baseUrl) {
+    if (!key || !baseUrl) throw new AIRequestError("The Replit Gemini integration is incomplete. Its key and base URL must both be configured.", "AI_NOT_CONFIGURED", 503, "google");
+    return new GoogleGenAI({ apiKey: key, httpOptions: { baseUrl, apiVersion: "", timeout: 60000 } });
+  }
+  if (!process.env.GEMINI_API_KEY) throw new AIRequestError("Gemini is not configured. Select another provider in Account Settings.", "AI_NOT_CONFIGURED", 503, "google");
+  return new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY, httpOptions: { timeout: 60000 } });
+}
+
+function geminiImage(image: string): Part {
+  const { data, mimeType } = parseImage(image);
+  return { inlineData: { data, mimeType } };
+}
+
+function openAIImages(images: string[]): OpenAI.Chat.Completions.ChatCompletionContentPart[] {
+  return images.map(image => ({ type: "image_url", image_url: { url: parseImage(image).dataUrl } }));
+}
+
+async function callProvider<T>(provider: AIProvider, call: () => Promise<T>): Promise<T> {
+  try {
+    return await call();
+  } catch (error) {
+    throw toAIError(error, provider);
   }
 }
 
-// Get chat response with selected LLM provider
+export async function analyzeVisualization(image: string, provider = "openai"): Promise<ChartAnalysis> {
+  const selected = providerName(provider);
+  return callProvider(selected, async () => {
+    if (selected === "google") {
+      const response = await geminiClient().models.generateContent({
+        model: AI_MODELS.google,
+        contents: [{ role: "user", parts: [{ text: "Analyze this chart." }, geminiImage(image)] }],
+        config: { systemInstruction: analysisInstruction, responseMimeType: "application/json" },
+      });
+      return parseAnalysis(requireText(response.text));
+    }
+    const response = await openAIClient(selected).chat.completions.create({
+      model: AI_MODELS[selected],
+      messages: [
+        { role: "system", content: analysisInstruction },
+        { role: "user", content: [{ type: "text", text: "Analyze this chart." }, ...openAIImages([image])] },
+      ],
+      response_format: { type: "json_object" },
+      max_tokens: 1200,
+    });
+    return parseAnalysis(requireText(response.choices[0]?.message.content ?? undefined));
+  });
+}
+
 export async function getVisualizationChatResponse(
-  imageBase64: string,
+  image: string | string[],
   userMessage: string,
-  chatHistory: Array<{ role: string; content: string }>,
-  provider: string = "openai"
+  chatHistory: ChatMessage[],
+  provider = "openai",
 ): Promise<string> {
-  switch (provider) {
-    case "google":
-      return chatWithGemini(imageBase64, userMessage, chatHistory);
-    case "xai":
-      return chatWithXAI(imageBase64, userMessage, chatHistory);
-    case "openai":
-    default:
-      return chatWithOpenAI(imageBase64, userMessage, chatHistory);
-  }
-}
-
-// OpenAI Implementation
-async function analyzeWithOpenAI(imageBase64: string): Promise<{ summary: string; points: string[] }> {
-  try {
-    const imageUrl = imageBase64.startsWith('data:') 
-      ? imageBase64
-      : `data:image/jpeg;base64,${imageBase64}`;
-    
-    console.log("Analyzing with OpenAI GPT-4o");
-    
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        {
-          role: "system",
-          content: "You are an expert data visualization analyst. Analyze the chart or graph in the image and provide a concise, insightful summary. Your response should be in JSON format with a 'summary' field containing a paragraph overview and a 'points' array containing 3-5 key observations as simple strings (NOT objects)."
-        },
-        {
-          role: "user",
-          content: [
-            {
-              type: "text",
-              text: "Analyze this data visualization and provide a brief but insightful summary. What does this chart show? What are the key trends or patterns? What might be important to know about this data?"
-            },
-            {
-              type: "image_url",
-              image_url: { url: imageUrl }
-            }
-          ]
-        }
-      ],
-      response_format: { type: "json_object" },
-      max_tokens: 800
-    });
-    
-    const result = JSON.parse(response.choices[0].message.content || '{}');
-    if (!result.summary || !Array.isArray(result.points)) {
-      throw new Error("Invalid response format from OpenAI");
+  const selected = providerName(provider);
+  const images = Array.isArray(image) ? image : [image];
+  if (!images.length) throw new AIRequestError("This report has no chart images. Upload the chart again.", "AI_INVALID_IMAGE", 400);
+  return callProvider(selected, async () => {
+    if (selected === "google") {
+      const contents: Content[] = [
+        { role: "user", parts: [{ text: `These are the ${images.length} chart image(s) for this conversation.` }, ...images.map(geminiImage)] },
+        ...chatHistory.filter(message => ["user", "assistant"].includes(message.role)).map(message => ({
+          role: message.role === "assistant" ? "model" : "user",
+          parts: [{ text: message.content }],
+        })),
+        { role: "user", parts: [{ text: userMessage }] },
+      ];
+      const response = await geminiClient().models.generateContent({
+        model: AI_MODELS.google, contents, config: { systemInstruction: chatInstruction },
+      });
+      return requireText(response.text);
     }
-    return result;
-  } catch (error) {
-    console.error("Error with OpenAI:", error);
-    return getFallbackResponse();
-  }
-}
-
-async function chatWithOpenAI(
-  imageBase64: string,
-  userMessage: string,
-  chatHistory: Array<{ role: string; content: string }>
-): Promise<string> {
-  try {
-    const imageUrl = imageBase64.startsWith('data:') 
-      ? imageBase64
-      : `data:image/jpeg;base64,${imageBase64}`;
-    
-    const systemPrompt = "You are Data Vizard, a friendly and expert-level data visualization analyst. You're helping a user understand their chart or graph. Provide clear, insightful explanations about the visualization shown in the image. Refer directly to visual elements, data points, trends, and patterns visible in the chart.";
-    
-    const formattedHistory = chatHistory.map(msg => ({
-      role: msg.role as "user" | "assistant",
-      content: msg.content
-    }));
-    
-    const messages = [
-      { role: "system" as const, content: systemPrompt },
-      {
-        role: "user" as const,
-        content: [
-          { type: "text" as const, text: "Here is the data visualization I want to discuss:" },
-          { type: "image_url" as const, image_url: { url: imageUrl } }
-        ]
-      },
-      ...formattedHistory,
-      { role: "user" as const, content: userMessage }
+    const messages: OpenAIMessage[] = [
+      { role: "system", content: chatInstruction },
+      { role: "user", content: [{ type: "text", text: `These are the ${images.length} chart image(s) for this conversation.` }, ...openAIImages(images)] },
+      ...chatHistory.filter(message => ["user", "assistant"].includes(message.role)).map(message => ({
+        role: message.role as "user" | "assistant", content: message.content,
+      })),
+      { role: "user", content: userMessage },
     ];
-    
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: messages as any,
-      max_tokens: 1000
+    const response = await openAIClient(selected).chat.completions.create({
+      model: AI_MODELS[selected], messages, max_tokens: 1400,
     });
-    
-    return response.choices[0].message.content || "I couldn't analyze the visualization properly.";
-  } catch (error) {
-    console.error("Error in OpenAI chat:", error);
-    return "I'm having trouble connecting. Please try again.";
-  }
+    return requireText(response.choices[0]?.message.content ?? undefined);
+  });
 }
 
-// Google Gemini Implementation
-async function analyzeWithGemini(imageBase64: string): Promise<{ summary: string; points: string[] }> {
-  try {
-    console.log("Analyzing with Google Gemini");
-    
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }, geminiRequestOptions);
-    
-    const base64Data = imageBase64.includes(',') 
-      ? imageBase64.split(',')[1] 
-      : imageBase64;
-    
-    const prompt = `Analyze this data visualization and provide insights. Return your response in JSON format with:
-- "summary": A paragraph overview of what the chart shows
-- "points": An array of 3-5 key observations as strings
-
-What does this chart show? What are the key trends or patterns? What might be important to know about this data?`;
-    
-    const result = await model.generateContent([
-      prompt,
-      {
-        inlineData: {
-          data: base64Data,
-          mimeType: "image/jpeg"
-        }
-      }
-    ]);
-    
-    const response = await result.response;
-    const text = response.text();
-    
-    // Try to extract JSON from response
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      const parsed = JSON.parse(jsonMatch[0]);
-      if (parsed.summary && Array.isArray(parsed.points)) {
-        return parsed;
-      }
+export async function generateComprehensiveAnalysis(prompt: string, provider = "openai"): Promise<ChartAnalysis> {
+  const selected = providerName(provider);
+  return callProvider(selected, async () => {
+    if (selected === "google") {
+      const response = await geminiClient().models.generateContent({
+        model: AI_MODELS.google, contents: prompt,
+        config: { systemInstruction: analysisInstruction, responseMimeType: "application/json" },
+      });
+      return parseAnalysis(requireText(response.text));
     }
-    
-    // Fallback parsing
-    return {
-      summary: text.split('\n')[0] || text,
-      points: text.split('\n').slice(1, 6).filter(line => line.trim())
-    };
-  } catch (error) {
-    console.error("Error with Gemini:", error);
-    return getFallbackResponse();
-  }
-}
-
-async function chatWithGemini(
-  imageBase64: string,
-  userMessage: string,
-  chatHistory: Array<{ role: string; content: string }>
-): Promise<string> {
-  try {
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }, geminiRequestOptions);
-    
-    const base64Data = imageBase64.includes(',') 
-      ? imageBase64.split(',')[1] 
-      : imageBase64;
-    
-    // Build chat context
-    const historyText = chatHistory.map(msg => 
-      `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`
-    ).join('\n');
-    
-    const prompt = `You are Data Vizard, an expert data visualization analyst. A user is asking about their chart.
-
-Previous conversation:
-${historyText}
-
-Current question: ${userMessage}
-
-Provide a clear, insightful response about the visualization.`;
-    
-    const result = await model.generateContent([
-      prompt,
-      {
-        inlineData: {
-          data: base64Data,
-          mimeType: "image/jpeg"
-        }
-      }
-    ]);
-    
-    const response = await result.response;
-    return response.text();
-  } catch (error) {
-    console.error("Error in Gemini chat:", error);
-    return "I'm having trouble connecting. Please try again.";
-  }
-}
-
-// XAI (Grok) Implementation
-async function analyzeWithXAI(imageBase64: string): Promise<{ summary: string; points: string[] }> {
-  try {
-    console.log("Analyzing with xAI Grok");
-    
-    const imageUrl = imageBase64.startsWith('data:') 
-      ? imageBase64
-      : `data:image/jpeg;base64,${imageBase64}`;
-    
-    const response = await xai.chat.completions.create({
-      model: "grok-4-0709",
-      messages: [
-        {
-          role: "system",
-          content: "You are an expert data visualization analyst. Analyze the chart or graph in the image and provide a concise, insightful summary. Your response should be in JSON format with a 'summary' field containing a paragraph overview and a 'points' array containing 3-5 key observations as simple strings (NOT objects)."
-        },
-        {
-          role: "user",
-          content: [
-            {
-              type: "text",
-              text: "Analyze this data visualization and provide a brief but insightful summary. What does this chart show? What are the key trends or patterns? What might be important to know about this data?"
-            },
-            {
-              type: "image_url",
-              image_url: { url: imageUrl }
-            }
-          ]
-        }
-      ],
-      max_tokens: 800
-    });
-    
-    // Strip markdown code blocks if present
-    let content = response.choices[0].message.content || '{}';
-    content = content.replace(/```json\s*|\s*```/g, '').trim();
-    
-    const result = JSON.parse(content);
-    if (!result.summary || !Array.isArray(result.points)) {
-      throw new Error("Invalid response format from xAI");
-    }
-    return result;
-  } catch (error) {
-    console.error("Error with xAI:", error);
-    return getFallbackResponse();
-  }
-}
-
-async function chatWithXAI(
-  imageBase64: string,
-  userMessage: string,
-  chatHistory: Array<{ role: string; content: string }>
-): Promise<string> {
-  try {
-    const imageUrl = imageBase64.startsWith('data:') 
-      ? imageBase64
-      : `data:image/jpeg;base64,${imageBase64}`;
-    
-    const systemPrompt = "You are Data Vizard, a friendly and expert-level data visualization analyst. You're helping a user understand their chart or graph. Provide clear, insightful explanations about the visualization shown in the image.";
-    
-    const formattedHistory = chatHistory.map(msg => ({
-      role: msg.role as "user" | "assistant",
-      content: msg.content
-    }));
-    
-    const messages = [
-      { role: "system" as const, content: systemPrompt },
-      {
-        role: "user" as const,
-        content: [
-          { type: "text" as const, text: "Here is the data visualization I want to discuss:" },
-          { type: "image_url" as const, image_url: { url: imageUrl } }
-        ]
-      },
-      ...formattedHistory,
-      { role: "user" as const, content: userMessage }
-    ];
-    
-    const response = await xai.chat.completions.create({
-      model: "grok-4-0709",
-      messages: messages as any,
-      max_tokens: 1000
-    });
-    
-    return response.choices[0].message.content || "I couldn't analyze the visualization properly.";
-  } catch (error) {
-    console.error("Error in xAI chat:", error);
-    return "I'm having trouble connecting. Please try again.";
-  }
-}
-
-// Generate comprehensive analysis from text prompt (for multi-visualization projects)
-export async function generateComprehensiveAnalysis(
-  prompt: string,
-  provider: string = "openai"
-): Promise<{ summary: string; points: string[] }> {
-  switch (provider) {
-    case "google":
-      return generateComprehensiveWithGemini(prompt);
-    case "xai":
-      return generateComprehensiveWithXAI(prompt);
-    case "openai":
-    default:
-      return generateComprehensiveWithOpenAI(prompt);
-  }
-}
-
-async function generateComprehensiveWithOpenAI(prompt: string): Promise<{ summary: string; points: string[] }> {
-  try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        {
-          role: "system",
-          content: "You are Data Vizard, an expert business analyst. Analyze multiple related visualizations to provide comprehensive business insights."
-        },
-        {
-          role: "user",
-          content: prompt
-        }
-      ],
+    const response = await openAIClient(selected).chat.completions.create({
+      model: selected === "xai" ? AI_MODELS.xaiText : AI_MODELS.openai,
+      messages: [{ role: "system", content: analysisInstruction }, { role: "user", content: prompt }],
       response_format: { type: "json_object" },
+      max_tokens: 1800,
     });
-    
-    const result = JSON.parse(response.choices[0].message.content || '{}');
-    if (!result.summary || !Array.isArray(result.points)) {
-      throw new Error("Invalid response format from OpenAI");
-    }
-    return result;
-  } catch (error) {
-    console.error("Error with OpenAI comprehensive analysis:", error);
-    return getFallbackResponse();
-  }
+    return parseAnalysis(requireText(response.choices[0]?.message.content ?? undefined));
+  });
 }
 
-async function generateComprehensiveWithGemini(prompt: string): Promise<{ summary: string; points: string[] }> {
-  try {
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }, geminiRequestOptions);
-    
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
-    
-    // Try to extract JSON from response
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      const parsed = JSON.parse(jsonMatch[0]);
-      if (parsed.summary && Array.isArray(parsed.points)) {
-        return parsed;
-      }
-    }
-    
-    // Fallback parsing
-    return {
-      summary: text.split('\n')[0] || text,
-      points: text.split('\n').slice(1, 6).filter(line => line.trim())
-    };
-  } catch (error) {
-    console.error("Error with Gemini comprehensive analysis:", error);
-    return getFallbackResponse();
-  }
-}
-
-async function generateComprehensiveWithXAI(prompt: string): Promise<{ summary: string; points: string[] }> {
-  try {
-    const response = await xai.chat.completions.create({
-      model: "grok-3",
-      messages: [
-        {
-          role: "system",
-          content: "You are Data Vizard, an expert business analyst. Analyze multiple related visualizations to provide comprehensive business insights."
-        },
-        {
-          role: "user",
-          content: prompt
-        }
-      ],
-      max_tokens: 1000
+// Create uses the same client/model/error handling as Gemini chart analysis.
+export async function generateGeminiText(parts: Part[]): Promise<string> {
+  return callProvider("google", async () => {
+    const response = await geminiClient().models.generateContent({
+      model: AI_MODELS.google,
+      contents: [{ role: "user", parts }],
+      config: { responseMimeType: "application/json" },
     });
-    
-    const text = response.choices[0].message.content || '';
-    
-    // Try to parse as JSON
-    try {
-      const result = JSON.parse(text);
-      if (result.summary && Array.isArray(result.points)) {
-        return result;
-      }
-    } catch {
-      // Not JSON, fallback parsing
-      return {
-        summary: text.split('\n')[0] || text,
-        points: text.split('\n').slice(1, 6).filter(line => line.trim())
-      };
-    }
-    
-    return getFallbackResponse();
-  } catch (error) {
-    console.error("Error with xAI comprehensive analysis:", error);
-    return getFallbackResponse();
-  }
-}
-
-// Fallback response
-function getFallbackResponse(): { summary: string; points: string[] } {
-  return {
-    summary: "This visualization contains data that you can explore through our chat interface.",
-    points: [
-      "The chart format presents information in a structured way",
-      "You can ask specific questions about elements in the visualization",
-      "Try asking about trends, patterns, or specific data points"
-    ]
-  };
+    return requireText(response.text);
+  });
 }

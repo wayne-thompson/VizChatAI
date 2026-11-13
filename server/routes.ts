@@ -3,8 +3,9 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { v4 as uuidv4 } from 'uuid';
-import OpenAI from "openai";
-import { GoogleGenAI, Modality } from "@google/genai";
+import { generateGeminiText } from "./llm-provider";
+import { toAIError } from "./ai-utils";
+import { loadChatContext } from "./chat-context";
 import { 
   insertVisualizationSchema, 
   insertMessageSchema,
@@ -13,20 +14,16 @@ import {
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
 import multer from "multer";
-import path from "path";
-import fs from "fs";
 
-// Initialize Gemini with Replit AI Integrations
-const gemini = new GoogleGenAI({
-  apiKey: process.env.AI_INTEGRATIONS_GEMINI_API_KEY || "",
-  httpOptions: {
-    apiVersion: "",
-    baseUrl: process.env.AI_INTEGRATIONS_GEMINI_BASE_URL,
-  },
-});
-
-// Initialize OpenAI
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || "" });
+function sendAIError(res: Response, error: unknown) {
+  const failure = toAIError(error);
+  console.error("[ai] request failed", {
+    provider: failure.provider, code: failure.code, status: failure.httpStatus,
+  });
+  return res.status(failure.httpStatus).json({
+    message: failure.message, code: failure.code, provider: failure.provider,
+  });
+}
 
 // Setup multer for handling file uploads
 const upload = multer({
@@ -191,6 +188,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!visualizations || visualizations.length === 0) {
         return res.status(404).json({ message: "Project visualizations not found" });
       }
+      if (visualizations.some(chart => chart.userId !== req.user.claims.sub)) {
+        return res.status(403).json({ message: "You do not have access to this project" });
+      }
 
       // Get user's LLM provider preference
       const userId = req.user.claims.sub;
@@ -236,7 +236,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         const comprehensiveAnalysis = await generateComprehensiveAnalysis(comprehensivePrompt, llmProvider);
         
-        console.log("Comprehensive analysis received:", comprehensiveAnalysis);
         
         // Ensure points is an array of strings - more aggressive extraction
         if (comprehensiveAnalysis.points && Array.isArray(comprehensiveAnalysis.points)) {
@@ -263,7 +262,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
         
-        console.log("Comprehensive analysis processed:", comprehensiveAnalysis);
         
         // Update all visualizations with project analysis
         for (const viz of visualizations) {
@@ -278,8 +276,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           projectGroup
         });
       } catch (error) {
-        console.error("OpenAI API error:", error);
-        res.status(500).json({ message: "Error analyzing visualizations with AI" });
+        sendAIError(res, error);
       }
     } catch (error) {
       console.error("Error analyzing project:", error);
@@ -296,6 +293,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!visualization) {
         return res.status(404).json({ message: "Visualization not found" });
       }
+      if (visualization.userId !== req.user.claims.sub) {
+        return res.status(403).json({ message: "You do not have access to this visualization" });
+      }
 
       // Get user's LLM provider preference
       const userId = req.user.claims.sub;
@@ -310,7 +310,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Get analysis from the selected LLM provider
         const result = await analyzeVisualization(visualization.imageBase64, llmProvider);
-        console.log("Received analysis:", result);
         
         // Ensure points is an array of strings - more aggressive extraction
         if (result.points && Array.isArray(result.points)) {
@@ -347,8 +346,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           summary: result
         });
       } catch (error) {
-        console.error("OpenAI API error:", error);
-        res.status(500).json({ message: "Error analyzing visualization with AI" });
+        sendAIError(res, error);
       }
     } catch (error) {
       console.error("Error analyzing visualization:", error);
@@ -479,8 +477,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!visualization) {
         return res.status(404).json({ message: "Visualization not found" });
       }
-      
-      const messages = await storage.getMessagesByVisualization(id);
+      if (visualization.userId !== req.user.claims.sub) {
+        return res.status(403).json({ message: "You do not have access to this visualization" });
+      }
+      const { messages } = await loadChatContext(storage, visualization);
       res.json(messages);
     } catch (error) {
       console.error("Error fetching messages:", error);
@@ -497,6 +497,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!visualization) {
         return res.status(404).json({ message: "Visualization not found" });
       }
+      if (visualization.userId !== req.user.claims.sub) {
+        return res.status(403).json({ message: "You do not have access to this visualization" });
+      }
       
       // Validate message content
       const messageData = insertMessageSchema.parse({
@@ -505,11 +508,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         content: req.body.content
       });
       
-      // Save user message
+      // Load saved history across the entire chart group before this new turn.
+      const { charts: chartContext, messages } = await loadChatContext(storage, visualization);
+
+      // Save user message, even if the provider subsequently fails.
       const userMessage = await storage.createMessage(messageData);
-      
-      // Get all previous messages
-      const messages = await storage.getMessagesByVisualization(id);
       
       // Get user's LLM provider preference
       const userId = req.user.claims.sub;
@@ -524,7 +527,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Format previous messages for the API
         const chatHistory = messages
-          .slice(0, -1) // Exclude the message we just saved
           .map(msg => ({
             role: msg.role,
             content: msg.content
@@ -532,7 +534,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Get response from the selected LLM provider
         const responseText = await getVisualizationChatResponse(
-          visualization.imageBase64,
+          chartContext.map(chart => chart.imageBase64),
           req.body.content,
           chatHistory,
           llmProvider
@@ -552,8 +554,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           assistantMessage
         });
       } catch (error) {
-        console.error("OpenAI API error:", error);
-        res.status(500).json({ message: "Error generating AI response" });
+        sendAIError(res, error);
       }
     } catch (error) {
       if (error instanceof ZodError) {
@@ -621,6 +622,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (!genViz) {
         return res.status(404).json({ message: "Generated visualization not found" });
+      }
+      if (genViz.userId !== req.user.claims.sub) {
+        return res.status(403).json({ message: "You do not have access to this visualization" });
       }
 
       // Extract base64 data from data URL
@@ -701,14 +705,7 @@ Use professional, modern color palettes. Each chart should show different aspect
 
       console.log("Generating chart specifications with Gemini...");
 
-      // Use text-only model for structured data extraction
-      const response = await gemini.models.generateContent({
-        model: "gemini-2.0-flash",
-        contents: [{ role: "user", parts }],
-      });
-
-      const responseText = response.candidates?.[0]?.content?.parts?.[0]?.text || "";
-      console.log("Gemini response:", responseText.substring(0, 500));
+      const responseText = await generateGeminiText(parts);
 
       // Parse the JSON response
       let chartSpecs: any[] = [];
@@ -721,7 +718,7 @@ Use professional, modern color palettes. Each chart should show different aspect
           throw new Error("No JSON array found in response");
         }
       } catch (parseError) {
-        console.error("Failed to parse chart specs:", parseError);
+        console.error("[ai] invalid Create chart specifications");
         return res.status(500).json({ message: "Failed to parse visualization data from AI response" });
       }
 
@@ -736,8 +733,7 @@ Use professional, modern color palettes. Each chart should show different aspect
 
       res.json(updatedViz);
     } catch (error) {
-      console.error("Error generating visualizations:", error);
-      res.status(500).json({ message: "Error generating visualizations" });
+      sendAIError(res, error);
     }
   });
 

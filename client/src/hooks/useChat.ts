@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { sendMessage, getMessages } from '@/lib/openai';
 import { Message } from '@shared/schema';
@@ -9,9 +9,16 @@ export function useChat(visualizationId: number) {
   const { toast } = useToast();
   const [isTyping, setIsTyping] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
+  const activeVisualizationId = useRef(visualizationId);
+  activeVisualizationId.current = visualizationId;
+
+  useEffect(() => {
+    setMessages([]);
+    setIsTyping(false);
+  }, [visualizationId]);
 
   // Fetch messages if visualization ID is valid
-  const { data: fetchedMessages, isLoading } = useQuery({
+  const { data: fetchedMessages, isLoading } = useQuery<Message[]>({
     queryKey: [`/api/visualizations/${visualizationId}/messages`],
     enabled: visualizationId > 0,
   });
@@ -26,6 +33,7 @@ export function useChat(visualizationId: number) {
   // Message sending mutation
   const messageMutation = useMutation({
     mutationFn: async (content: string) => {
+      const targetId = visualizationId;
       setIsTyping(true);
       
       // Create a temporary user message to show immediately
@@ -52,49 +60,37 @@ export function useChat(visualizationId: number) {
         });
         
         if (!response.ok) {
-          throw new Error(`Server error: ${response.status}`);
+          const body = await response.json().catch(() => null);
+          throw new Error(body?.message || `Unable to send message (${response.status})`);
         }
         
         const data = await response.json();
         
         // Update messages with actual response
-        setMessages(prev => [
-          ...prev.filter(m => m.id !== tempUserMsg.id),
-          data.userMessage,
-          data.assistantMessage
-        ]);
+        if (activeVisualizationId.current === targetId) {
+          setMessages(prev => [
+            ...prev.filter(m => m.id !== tempUserMsg.id),
+            data.userMessage,
+            data.assistantMessage
+          ]);
+        }
         
         return data;
       } catch (error) {
-        console.error("Error sending message:", error);
-        
-        // Add a fallback assistant message when there's an error
-        const fallbackAssistantMsg: Message = {
-          id: Date.now() + 1,
-          visualizationId,
-          role: "assistant",
-          content: "I apologize, but I'm having trouble processing your request right now. Please try again.",
-          createdAt: new Date()
-        };
-        
-        // Update messages with user message and fallback response
-        setMessages(prev => [
-          ...prev.filter(m => m.id !== tempUserMsg.id),
-          tempUserMsg,
-          fallbackAssistantMsg
-        ]);
-        
-        return {
-          userMessage: tempUserMsg,
-          assistantMessage: fallbackAssistantMsg
-        };
+        // The server may already have saved the user message. Refresh that
+        // history, but never fabricate an assistant reply for a failed call.
+        if (activeVisualizationId.current === targetId) {
+          setMessages(prev => prev.filter(m => m.id !== tempUserMsg.id));
+        }
+        queryClient.invalidateQueries({ queryKey: [`/api/visualizations/${targetId}/messages`] });
+        throw error;
       } finally {
-        setIsTyping(false);
+        if (activeVisualizationId.current === targetId) setIsTyping(false);
       }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       // Invalidate the messages query to fetch fresh data
-      queryClient.invalidateQueries({ queryKey: [`/api/visualizations/${visualizationId}/messages`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/visualizations/${data.userMessage.visualizationId}/messages`] });
     },
     onError: (error) => {
       toast({

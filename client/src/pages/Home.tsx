@@ -9,6 +9,8 @@ import ShareModal from "@/components/ShareModal";
 import { useImageUpload } from "@/hooks/useImageUpload";
 import { useChat } from "@/hooks/useChat";
 import { useSharing } from "@/hooks/useSharing";
+import { Button } from "@/components/ui/button";
+import { Link } from "wouter";
 
 export default function Home() {
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
@@ -21,7 +23,9 @@ export default function Home() {
     isGeneratingInsights,
     uploadImage,
     uploadMultipleImages,
-    resetSession
+    resetSession,
+    analysisError,
+    generateInsights
   } = useImageUpload();
   
   const {
@@ -48,6 +52,8 @@ export default function Home() {
     // Check for file from "New Visualization" button
     const checkForSelectedFile = async () => {
       if (storedFile) {
+        // Consume before awaiting: upload state changes rerender this component.
+        sessionStorage.removeItem('selectedFile');
         try {
           const fileData = JSON.parse(storedFile);
           
@@ -94,7 +100,21 @@ export default function Home() {
                 visualizations={visualizations}
                 summary={summary}
                 isGenerating={isGeneratingInsights}
+                onGenerateInsights={generateInsights}
               />
+              {analysisError && (
+                <div role="alert" className="my-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-900">
+                  <p className="font-semibold">Analysis could not be completed</p>
+                  <p className="mt-1">{analysisError}</p>
+                  <p className="mt-1">Your uploaded chart is still saved.</p>
+                  <div className="mt-3 flex items-center gap-4">
+                    <Button variant="outline" disabled={isGeneratingInsights} onClick={() => void generateInsights()}>
+                      Retry analysis
+                    </Button>
+                    <Link href="/account" className="underline">Account Settings</Link>
+                  </div>
+                </div>
+              )}
               
               {/* Show multiple visualizations indicator */}
               {visualizations.length > 1 && (

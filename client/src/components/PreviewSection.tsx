@@ -12,13 +12,15 @@ interface PreviewSectionProps {
   visualizations?: Visualization[];
   summary: { summary: string; points: string[] } | null;
   isGenerating: boolean;
+  onGenerateInsights?: () => Promise<void>;
 }
 
 export default function PreviewSection({ 
   visualization, 
   visualizations = [],
   summary, 
-  isGenerating 
+  isGenerating,
+  onGenerateInsights
 }: PreviewSectionProps) {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
@@ -214,7 +216,14 @@ export default function PreviewSection({
       </div>
       
       <div className="mt-4 bg-white rounded-lg border border-gray-200 p-4">
-        <h3 className="font-medium mb-2 text-gray-800">Summary</h3>
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <h3 className="font-medium text-gray-800">Summary</h3>
+          {onGenerateInsights && (
+            <Button variant="outline" size="sm" disabled={isGenerating} onClick={() => void onGenerateInsights()}>
+              {isGenerating ? "Analyzing..." : summaryData ? "Reanalyze" : "Analyze chart"}
+            </Button>
+          )}
+        </div>
         <div id="ai-summary" className="text-sm text-gray-600">
           {isGenerating ? (
             <div className="flex space-x-1 items-center">
@@ -240,7 +249,7 @@ export default function PreviewSection({
               )}
             </>
           ) : (
-            <p>Click "Generate Insights" to analyze this visualization with AI.</p>
+            <p>No analysis has been saved for this visualization yet.</p>
           )}
         </div>
       </div>
