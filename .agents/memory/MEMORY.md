@@ -1,2 +1,3 @@
 - [Runtime secret inventory](runtime-secret-inventory.md) — secret inventory and runtime presence can disagree; compare presence-only checks and sanitized logs.
 - [Provider failure policy](provider-failure-policy.md) — preserve the user's selected provider and return explicit errors rather than fabricated success.
+- [OpenAI billing choice](openai-billing-choice.md) — the user approved switching OpenAI from the direct API account to Replit-managed billing.
