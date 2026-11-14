@@ -155,7 +155,7 @@ function AppRail({ location, onNewAnalysis }: { location: string; onNewAnalysis:
       >
         <RailMark />
       </Link>
-      <nav className="mt-5 flex w-full flex-1 flex-col items-center gap-1" aria-label="Primary">
+      <nav className="mt-5 flex w-full flex-1 flex-col items-center gap-3" aria-label="Primary">
         {PRIMARY_NAV.map((item) => (
           <RailButton key={item.href} item={item} location={location} onNewAnalysis={onNewAnalysis} />
         ))}
