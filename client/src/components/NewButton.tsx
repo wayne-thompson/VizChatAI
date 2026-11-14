@@ -4,7 +4,7 @@ export default function NewButton() {
   const [, navigate] = useLocation();
   
   const handleNewVisualization = () => {
-    navigate("/");
+    navigate("/analyze");
   };
   
   return (

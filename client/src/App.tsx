@@ -8,7 +8,7 @@ import Projects from "@/pages/Projects";
 import Account from "@/pages/Account";
 import VisualizationDetail from "@/pages/VisualizationDetail";
 import StaticReport from "@/pages/StaticReport";
-import Landing from "@/pages/Landing";
+import Homepage from "@/pages/Homepage";
 import Create from "@/pages/Create";
 import SharedCreate from "@/pages/SharedCreate";
 import NotFound from "@/pages/not-found";
@@ -27,11 +27,10 @@ function Router() {
 
   return (
     <Switch>
-      {!isAuthenticated ? (
-        <Route path="/" component={Landing} />
-      ) : (
+      <Route path="/" component={Homepage} />
+      {isAuthenticated && (
         <>
-          <Route path="/" component={Home} />
+          <Route path="/analyze" component={Home} />
           <Route path="/projects" component={Projects} />
           <Route path="/create" component={Create} />
           <Route path="/account" component={Account} />

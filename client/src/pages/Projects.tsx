@@ -365,7 +365,7 @@ export default function Projects() {
           <p className="text-gray-500 mb-6">
             Upload your first visualization to get started
           </p>
-          <Link href="/">
+          <Link href="/analyze">
             <Button>
               <i className="fas fa-upload mr-2"></i>
               Upload a Visualization

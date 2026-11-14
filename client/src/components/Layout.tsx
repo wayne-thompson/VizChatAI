@@ -1,222 +1,193 @@
 import { Link, useLocation } from "wouter";
-import React, { useRef, useState, useEffect } from "react";
-import { Download } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { useEffect, useRef, useState, type ChangeEvent, type ReactNode } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/ui/button";
+import { Wordmark } from "@/components/brand/Wordmark";
+import { AuthPromptProvider, useOpenAuth } from "@/components/auth/AuthPrompt";
+import { cn } from "@/lib/utils";
 
 interface LayoutProps {
-  children: React.ReactNode;
+  children: ReactNode;
+}
+
+const NAV_ITEMS = [
+  { href: "/", label: "Home" },
+  { href: "/projects", label: "Archive" },
+  { href: "/create", label: "Create" },
+  { href: "/account", label: "Account" },
+];
+
+function navClass(active: boolean) {
+  return cn(
+    "rounded-md px-3 py-2 text-nav font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy/30",
+    active ? "bg-cream text-forest" : "text-storm hover:bg-cream/80 hover:text-navy",
+  );
 }
 
 export default function Layout({ children }: LayoutProps) {
+  const [location] = useLocation();
+  const { isAuthenticated, isLoading } = useAuth();
+  const bare =
+    location.startsWith("/shared/") ||
+    location.startsWith("/report/") ||
+    isLoading ||
+    (!isAuthenticated && location !== "/");
+
+  if (bare) {
+    return <>{children}</>;
+  }
+
+  return (
+    <AuthPromptProvider>
+      <AppShell>{children}</AppShell>
+    </AuthPromptProvider>
+  );
+}
+
+function AppShell({ children }: LayoutProps) {
   const [location, navigate] = useLocation();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { toast } = useToast();
   const { isAuthenticated } = useAuth();
+  const openAuth = useOpenAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => setMobileMenuOpen(false), [location]);
-  
-  // Check if we're on a report page
-  const isReportPage = location.startsWith('/report/');
-  
-  // For shared/report pages, show simple layout
-  if (location.startsWith('/shared/') || location.startsWith('/report/')) {
-    return <>{children}</>;
-  }
-  
-  // For unauthenticated users, show simple layout
-  if (!isAuthenticated) {
-    return <>{children}</>;
-  }
-  
+
+  const locksViewport =
+    location === "/analyze" || location.startsWith("/visualization/");
+
   const handleNewClick = () => {
-    // Set flag to reset session
-    sessionStorage.setItem('resetSession', 'true');
-    
-    // Open file browser dialog directly
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
-    }
+    sessionStorage.setItem("resetSession", "true");
+    fileInputRef.current?.click();
+    setMobileMenuOpen(false);
   };
-  
-  const handleFileSelected = (event: React.ChangeEvent<HTMLInputElement>) => {
+
+  const handleFileSelected = (event: ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
-    if (files && files.length > 0) {
-      const file = files[0];
-      
-      // Verify file type and size
-      const isValidType = ['image/jpeg', 'image/png'].includes(file.type);
-      const isValidSize = file.size <= 5 * 1024 * 1024; // 5MB max
-      
-      if (!isValidType) {
-        alert('Please select a JPEG or PNG image file.');
-        event.target.value = '';
-        return;
-      }
-      
-      if (!isValidSize) {
-        alert('File size should not exceed 5MB.');
-        event.target.value = '';
-        return;
-      }
-      
-      // Store file reference for upload
-      const fileReader = new FileReader();
-      fileReader.readAsDataURL(file);
-      fileReader.onload = () => {
-        // Create a fake drop event - we'll handle this in our Home component's upload section
-        sessionStorage.setItem('selectedFile', JSON.stringify({
+    if (!files || files.length === 0) return;
+
+    const file = files[0];
+    const isValidType = ["image/jpeg", "image/png"].includes(file.type);
+    const isValidSize = file.size <= 5 * 1024 * 1024;
+
+    if (!isValidType) {
+      alert("Please select a JPEG or PNG image file.");
+      event.target.value = "";
+      return;
+    }
+
+    if (!isValidSize) {
+      alert("File size should not exceed 5MB.");
+      event.target.value = "";
+      return;
+    }
+
+    const fileReader = new FileReader();
+    fileReader.readAsDataURL(file);
+    fileReader.onload = () => {
+      sessionStorage.setItem(
+        "selectedFile",
+        JSON.stringify({
           name: file.name,
           type: file.type,
           size: file.size,
-          dataUrl: fileReader.result
-        }));
-        
-        // Navigate to home page
-        navigate("/");
-      };
-      
-      // Reset file input
-      event.target.value = '';
-    }
-  };
+          dataUrl: fileReader.result,
+        }),
+      );
+      navigate("/analyze");
+    };
 
-  const handleDownloadPDF = () => {
-    toast({
-      title: "Downloading PDF",
-      description: "Opening print dialog to save as PDF",
-    });
-    
-    // Trigger the browser's print dialog which allows saving as PDF
-    window.print();
+    event.target.value = "";
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/30">
-      {/* Hidden file input for New button */}
-      <input
-        type="file"
-        ref={fileInputRef}
-        style={{ display: 'none' }}
-        accept="image/jpeg,image/png"
-        onChange={handleFileSelected}
-      />
-      
-      {/* Top Navigation Bar */}
-      <header className="w-full bg-white/80 backdrop-blur-md border-b border-slate-200/60 shadow-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
-                <i className="fas fa-chart-line text-white text-lg"></i>
-              </div>
-              <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">VizChat</h1>
-            </div>
-            
-            <nav className="hidden md:flex items-center space-x-1">
-              <Link 
-                href="/" 
-                onClick={() => sessionStorage.setItem('resetSession', 'true')}
-                className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center ${
-                  location === '/' 
-                    ? 'bg-blue-50 text-blue-600' 
-                    : 'text-slate-600 hover:text-blue-600 hover:bg-slate-50'
-                }`}
-              >
-                <i className="fas fa-home mr-2"></i>
-                Home
-              </Link>
-              <Link 
-                href="/projects" 
-                className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center ${
-                  location === '/projects' 
-                    ? 'bg-blue-50 text-blue-600' 
-                    : 'text-slate-600 hover:text-blue-600 hover:bg-slate-50'
-                }`}
-              >
-                <i className="fas fa-archive mr-2"></i>
-                Archive
-              </Link>
-              <Link 
-                href="/create" 
-                className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center ${
-                  location === '/create' 
-                    ? 'bg-purple-50 text-purple-600' 
-                    : 'text-slate-600 hover:text-purple-600 hover:bg-slate-50'
-                }`}
-              >
-                <i className="fas fa-magic mr-2"></i>
-                Create
-              </Link>
-              <Link 
-                href="/account" 
-                className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center ${
-                  location === '/account' 
-                    ? 'bg-blue-50 text-blue-600' 
-                    : 'text-slate-600 hover:text-blue-600 hover:bg-slate-50'
-                }`}
-              >
-                <i className="fas fa-user mr-2"></i>
-                Account
-              </Link>
-            </nav>
-            
-            <div className="flex items-center space-x-3">
-              {isReportPage ? (
-                <button
-                  onClick={handleDownloadPDF}
-                  className="hidden md:flex items-center bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-5 py-2.5 rounded-lg hover:shadow-lg hover:shadow-blue-500/30 transition-all duration-200 font-medium"
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Download PDF
-                </button>
-              ) : (
-                <button
-                  onClick={handleNewClick}
-                  className="hidden md:flex items-center bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-5 py-2.5 rounded-lg hover:shadow-lg hover:shadow-blue-500/30 transition-all duration-200 font-medium"
-                >
-                  <i className="fas fa-plus mr-2"></i>
-                  New Visualization
-                </button>
-              )}
-              <button
-                type="button"
-                className="md:hidden text-slate-600 p-2 hover:bg-slate-100 rounded-lg transition-colors"
-                aria-label={mobileMenuOpen ? "Close navigation" : "Open navigation"}
-                aria-controls="mobile-navigation"
-                aria-expanded={mobileMenuOpen}
-                onClick={() => setMobileMenuOpen(open => !open)}
-              >
-                <i className="fas fa-bars text-xl"></i>
-              </button>
-            </div>
-          </div>
-          {mobileMenuOpen && (
-            <nav id="mobile-navigation" aria-label="Mobile navigation" className="md:hidden flex flex-col gap-1 border-t border-slate-200 py-3">
-              {[
-                { href: "/", label: "Home" },
-                { href: "/projects", label: "Archive" },
-                { href: "/create", label: "Create" },
-                { href: "/account", label: "Account" },
-              ].map(item => (
+    <div className="flex min-h-screen flex-col bg-cloud text-navy">
+      {isAuthenticated && (
+        <input
+          type="file"
+          ref={fileInputRef}
+          className="hidden"
+          accept="image/jpeg,image/png"
+          onChange={handleFileSelected}
+        />
+      )}
+
+      <header className="sticky top-0 z-50 h-16 border-b border-sky bg-white">
+        <div className="page-container flex h-full items-center justify-between gap-4">
+          <Link href="/" aria-label="VizChat home" className="shrink-0 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy/30">
+            <Wordmark className="h-[3.25rem]" />
+          </Link>
+
+          {isAuthenticated ? (
+            <nav className="hidden items-center gap-1 md:flex" aria-label="Primary">
+              {NAV_ITEMS.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
-                  onClick={() => setMobileMenuOpen(false)}
                   aria-current={location === item.href ? "page" : undefined}
-                  className={`rounded-lg px-4 py-3 font-medium ${location === item.href ? "bg-blue-50 text-blue-600" : "text-slate-600 hover:bg-slate-50"}`}
+                  className={navClass(location === item.href)}
                 >
                   {item.label}
                 </Link>
               ))}
             </nav>
-          )}
+          ) : null}
+
+          <div className="flex items-center gap-2">
+            {isAuthenticated ? (
+              <Button variant="brand" className="hidden md:inline-flex" onClick={handleNewClick}>
+                New Analysis
+              </Button>
+            ) : (
+              <>
+                <Button variant="ghost" className="px-2 text-storm hover:bg-cream hover:text-navy sm:px-4" onClick={() => openAuth("login", "/")}>
+                  Log in
+                </Button>
+                <Button variant="brand" className="px-3 sm:px-4" onClick={() => openAuth("register", "/")}>
+                  Get started
+                </Button>
+              </>
+            )}
+            {isAuthenticated && (
+              <button
+                type="button"
+                className="rounded-md p-2 text-navy hover:bg-cream focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy/30 md:hidden"
+                aria-label={mobileMenuOpen ? "Close navigation" : "Open navigation"}
+                aria-controls="mobile-navigation"
+                aria-expanded={mobileMenuOpen}
+                onClick={() => setMobileMenuOpen((open) => !open)}
+              >
+                <i className={`fas ${mobileMenuOpen ? "fa-times" : "fa-bars"} text-lg`} />
+              </button>
+            )}
+          </div>
         </div>
+        {isAuthenticated && mobileMenuOpen && (
+          <nav
+            id="mobile-navigation"
+            aria-label="Mobile navigation"
+            className="absolute inset-x-0 top-16 border-b border-sky bg-white px-5 py-3 md:hidden"
+          >
+            <div className="flex flex-col gap-1">
+              {NAV_ITEMS.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  aria-current={location === item.href ? "page" : undefined}
+                  className={navClass(location === item.href)}
+                >
+                  {item.label}
+                </Link>
+              ))}
+              <Button variant="brand" className="mt-2" onClick={handleNewClick}>
+                New Analysis
+              </Button>
+            </div>
+          </nav>
+        )}
       </header>
 
-      {/* Main content area */}
-      <main className="flex-1 overflow-hidden">
+      <main className={locksViewport ? "flex-1 overflow-hidden" : "flex-1"}>
         {children}
       </main>
     </div>

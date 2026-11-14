@@ -5,12 +5,35 @@ export default {
   content: ["./client/index.html", "./client/src/**/*.{js,jsx,ts,tsx}"],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ["Manrope", "Inter", "ui-sans-serif", "system-ui", "sans-serif"],
+      },
+      fontSize: {
+        display: ["3.5rem", { lineHeight: "1.08", letterSpacing: "-0.03em" }],
+        title: ["2rem", { lineHeight: "1.2", letterSpacing: "-0.02em" }],
+        heading: ["1.25rem", { lineHeight: "1.35", letterSpacing: "-0.015em" }],
+        body: ["1.0625rem", { lineHeight: "1.65" }],
+        caption: ["0.8125rem", { lineHeight: "1.45" }],
+        nav: ["0.9375rem", { lineHeight: "1.25" }],
+        button: ["0.9375rem", { lineHeight: "1" }],
+      },
+      boxShadow: {
+        card: "0 1px 2px rgba(22, 42, 60, 0.05), 0 12px 32px rgba(22, 42, 60, 0.06)",
+        lift: "0 16px 40px rgba(22, 42, 60, 0.1)",
+      },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
       colors: {
+        navy: "#162A3C",
+        forest: "#5E6C5B",
+        cloud: "#FFFCF6",
+        cream: "#F4EFE6",
+        sky: "#D6E0E2",
+        slateblue: "#496A80",
+        storm: "#686867",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         card: {
