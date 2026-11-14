@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow } from "date-fns";
 import { Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import AssistantMarkdown from "@/components/AssistantMarkdown";
 
 export default function StaticReport() {
   const [, params] = useRoute<{ shareId: string }>("/report/:shareId");
@@ -194,9 +195,11 @@ export default function StaticReport() {
                         </>
                       )}
                     </div>
-                    <div className="whitespace-pre-wrap">
-                      {message.content}
-                    </div>
+                    {message.role === "assistant" ? (
+                      <AssistantMarkdown content={message.content} />
+                    ) : (
+                      <div className="whitespace-pre-wrap">{message.content}</div>
+                    )}
                   </div>
                 </div>
               ))}

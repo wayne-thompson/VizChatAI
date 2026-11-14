@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { Message } from "@shared/schema";
 import { cn } from "@/lib/utils";
 import { Sparkles } from "lucide-react";
+import AssistantMarkdown from "@/components/AssistantMarkdown";
 
 interface ChatMessagesProps {
   messages: Message[];
@@ -37,7 +38,11 @@ export default function ChatMessages({ messages, isTyping }: ChatMessagesProps) 
               ? "viz-message bg-white border border-slate-200 text-slate-700 rounded-tl-md" 
               : "user-message bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-br-md shadow-lg shadow-blue-500/30"
           )}>
-            <p className="text-sm whitespace-pre-wrap leading-relaxed">{message.content}</p>
+            {message.role === "assistant" ? (
+              <AssistantMarkdown content={message.content} />
+            ) : (
+              <p className="text-sm whitespace-pre-wrap leading-relaxed">{message.content}</p>
+            )}
           </div>
           
           {message.role === "user" && (
