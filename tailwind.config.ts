@@ -28,6 +28,7 @@ export default {
       },
       colors: {
         navy: "#162A3C",
+        graphite: "#ECECEC",
         forest: "#5E6C5B",
         cloud: "#FFFCF6",
         cream: "#F4EFE6",
