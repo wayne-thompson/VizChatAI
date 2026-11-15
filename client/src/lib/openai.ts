@@ -4,6 +4,7 @@ import { apiRequest } from "./queryClient";
 export interface VisualizationWithMessages {
   visualization: Visualization;
   messages: Message[];
+  authorName?: string | null;
 }
 
 export interface AnalysisResult {

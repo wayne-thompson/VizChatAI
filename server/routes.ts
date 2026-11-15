@@ -383,10 +383,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Get messages for this visualization
       const messages = await storage.getMessagesByVisualization(visualization.id);
-      
+      const owner = visualization.userId ? await storage.getUser(visualization.userId) : undefined;
+      const authorName = [owner?.firstName, owner?.lastName]
+        .map((part) => part?.trim())
+        .filter((part): part is string => Boolean(part))
+        .join(" ");
+
       res.json({
         visualization,
-        messages
+        messages,
+        authorName: authorName || null,
       });
     } catch (error) {
       console.error("Error fetching shared visualization:", error);
