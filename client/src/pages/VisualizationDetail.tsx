@@ -9,9 +9,7 @@ import ChatHeader from "@/components/ChatHeader";
 import ChatMessages from "@/components/ChatMessages";
 import ChatInput from "@/components/ChatInput";
 import PreviewSection from "@/components/PreviewSection";
-import ShareSection from "@/components/ShareSection";
 import { useChat } from "@/hooks/useChat";
-import { useSharing } from "@/hooks/useSharing";
 
 export default function VisualizationDetail() {
   const [, setLocation] = useLocation();
@@ -53,11 +51,6 @@ export default function VisualizationDetail() {
     isTyping,
     sendMessage
   } = useChat(id);
-
-  // Set up sharing functionality
-  const {
-    updateVisualizationTags
-  } = useSharing(id);
 
   // Generate insights function
   const generateInsights = async () => {
@@ -166,11 +159,6 @@ export default function VisualizationDetail() {
               <p className="mt-1">Your previously saved report is unchanged. Use Reanalyze to retry.</p>
             </div>
           )}
-          
-          <ShareSection 
-            visualization={visualization} 
-            onUpdateTags={updateVisualizationTags}
-          />
         </div>
       </div>
 

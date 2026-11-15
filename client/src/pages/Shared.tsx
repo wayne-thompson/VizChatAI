@@ -2,14 +2,12 @@ import { useEffect, useState } from "react";
 import { useRoute } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import PreviewSection from "@/components/PreviewSection";
-import ShareSection from "@/components/ShareSection";
 import ChatHeader from "@/components/ChatHeader";
 import ChatMessages from "@/components/ChatMessages";
 import ChatInput from "@/components/ChatInput";
 import { getSharedVisualization, sendMessage } from "@/lib/openai";
 import { Message, Visualization } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
-import { updateVisualization } from "@/lib/openai";
 
 export default function Shared() {
   const [, params] = useRoute<{ shareId: string }>("/share/:shareId");
@@ -64,12 +62,6 @@ export default function Shared() {
     }
   };
   
-  const handleUpdateTags = async (tags: string[]) => {
-    if (!data?.visualization?.id) return;
-    
-    await updateVisualization(data.visualization.id, { tags });
-  };
-  
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -114,11 +106,6 @@ export default function Shared() {
           visualization={data.visualization} 
           summary={data.visualization.initialSummary ? JSON.parse(data.visualization.initialSummary) : null}
           isGenerating={false}
-        />
-        
-        <ShareSection 
-          visualization={data.visualization}
-          onUpdateTags={handleUpdateTags}
         />
       </div>
 

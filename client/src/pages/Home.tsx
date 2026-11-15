@@ -1,14 +1,12 @@
 import { useState, useEffect } from "react";
 import UploadSection from "@/components/UploadSection";
 import PreviewSection from "@/components/PreviewSection";
-import ShareSection from "@/components/ShareSection";
 import ChatHeader from "@/components/ChatHeader";
 import ChatMessages from "@/components/ChatMessages";
 import ChatInput from "@/components/ChatInput";
 import ShareModal from "@/components/ShareModal";
 import { useImageUpload } from "@/hooks/useImageUpload";
 import { useChat } from "@/hooks/useChat";
-import { useSharing } from "@/hooks/useSharing";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 
@@ -33,10 +31,6 @@ export default function Home() {
     isTyping,
     sendMessage
   } = useChat(visualization?.id || 0);
-
-  const {
-    updateVisualizationTags
-  } = useSharing(visualization?.id || 0);
 
   // Check for session reset or new file upload
   useEffect(() => {
@@ -134,11 +128,6 @@ export default function Home() {
                   </div>
                 </div>
               )}
-              
-              <ShareSection 
-                visualization={visualization} 
-                onUpdateTags={updateVisualizationTags}
-              />
             </>
           )}
         </div>
