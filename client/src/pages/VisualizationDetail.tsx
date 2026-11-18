@@ -5,11 +5,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { apiRequest } from "@/lib/queryClient";
 import { Visualization } from "@shared/schema";
-import ChatHeader from "@/components/ChatHeader";
 import ChatMessages from "@/components/ChatMessages";
 import ChatInput from "@/components/ChatInput";
 import PreviewSection from "@/components/PreviewSection";
+import { WorkspaceShell } from "@/components/workspace/WorkspaceShell";
+import { WorkspaceToolbar } from "@/components/workspace/WorkspaceToolbar";
 import { useChat } from "@/hooks/useChat";
+import { readRecommendedQuestions } from "@/components/workspace/readAnalysis";
 
 export default function VisualizationDetail() {
   const [, setLocation] = useLocation();
@@ -19,160 +21,154 @@ export default function VisualizationDetail() {
   const [summary, setSummary] = useState<{ summary: string; points: string[] } | null>(null);
   const [isGeneratingInsights, setIsGeneratingInsights] = useState(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
-  
-  // No need for "New" button handling - it's now managed in the Layout component
 
-  // Fetch visualization data
-  const { 
-    data: visualization, 
-    isLoading, 
-    error 
+  const {
+    data: visualization,
+    isLoading,
+    error,
   } = useQuery<Visualization>({
     queryKey: [`/api/visualizations/${id}`],
     queryFn: () => apiRequest<Visualization>(`/api/visualizations/${id}`),
-    enabled: id > 0
+    enabled: id > 0,
   });
 
-  // Parse summary from visualization data
   useEffect(() => {
     if (visualization?.initialSummary) {
       try {
         const parsedSummary = JSON.parse(visualization.initialSummary);
         setSummary(parsedSummary);
-      } catch (e) {
-        console.error("Failed to parse summary:", e);
+      } catch (parseError) {
+        console.error("Failed to parse summary:", parseError);
       }
     }
   }, [visualization]);
 
-  // Set up chat functionality
-  const {
-    messages,
-    isTyping,
-    sendMessage
-  } = useChat(id);
+  const { messages, isTyping, sendMessage, isSending, suggestedFollowUp } = useChat(id);
 
-  // Generate insights function
   const generateInsights = async () => {
     if (!visualization || isGeneratingInsights) return;
-    
+
     setIsGeneratingInsights(true);
     setAnalysisError(null);
-    
+
     try {
       const result = await apiRequest<{ visualization?: Visualization; summary: { summary: string; points: string[] } }>(
         visualization.projectGroup
           ? `/api/visualizations/project/${visualization.projectGroup}/analyze`
           : `/api/visualizations/${id}/analyze`,
-        { method: 'POST' }
+        { method: "POST" },
       );
-      
+
       setSummary(result.summary);
-      
-      // Update the visualization in the cache
-      queryClient.setQueryData([`/api/visualizations/${id}`],
-        result.visualization || { ...visualization, initialSummary: JSON.stringify(result.summary) });
-      
-    } catch (error) {
-      setAnalysisError(error instanceof Error ? error.message : "Analysis failed. Please retry.");
+      queryClient.setQueryData(
+        [`/api/visualizations/${id}`],
+        result.visualization || { ...visualization, initialSummary: JSON.stringify(result.summary) },
+      );
+    } catch (requestError) {
+      setAnalysisError(requestError instanceof Error ? requestError.message : "Analysis failed. Please retry.");
     } finally {
       setIsGeneratingInsights(false);
     }
   };
 
-  // Handle error state
+  const recommendedQuestions = readRecommendedQuestions(summary, visualization?.initialSummary);
+
   if (error) {
     return (
-      <div className="container py-12 px-4 text-center">
-        <h1 className="text-2xl font-bold mb-6">Something went wrong</h1>
-        <p className="text-gray-600 mb-8">
-          We couldn't load this visualization. It may have been deleted or might not exist.
-        </p>
-        <Button onClick={() => setLocation("/projects")}>
-          Back to Projects
-        </Button>
-      </div>
+      <StatusMessage
+        title="Something went wrong"
+        body="We couldn't load this visualization. It may have been deleted or might not exist."
+        onBack={() => setLocation("/projects")}
+      />
     );
   }
 
-  // Handle loading state
   if (isLoading) {
     return (
-      <div className="flex flex-col md:flex-row h-[calc(100vh-64px)]">
-        <div className="w-full md:w-1/2 p-4 md:p-6 md:border-r border-gray-200 overflow-y-auto h-[50vh] md:h-full">
-          <div className="max-w-xl mx-auto">
-            <Skeleton className="h-6 w-1/2 mb-3" />
-            <Skeleton className="h-4 w-3/4 mb-6" />
-            <Skeleton className="h-64 w-full rounded-md mb-6" />
-            <Skeleton className="h-4 w-full mb-2" />
-            <Skeleton className="h-4 w-5/6 mb-2" />
-            <Skeleton className="h-4 w-4/6 mb-4" />
-            <div className="flex space-x-2 mb-8">
-              <Skeleton className="h-8 w-20" />
-              <Skeleton className="h-8 w-20" />
-            </div>
-          </div>
-        </div>
-        <div className="w-full md:w-1/2 flex flex-col h-[50vh] md:h-full">
-          <Skeleton className="h-14 w-full" />
-          <div className="flex-1 p-4">
-            <Skeleton className="h-10 w-5/6 mb-4" />
-            <Skeleton className="h-10 w-4/6 mb-4" />
-            <Skeleton className="h-10 w-3/4 mb-4" />
-          </div>
-          <Skeleton className="h-16 w-full" />
-        </div>
-      </div>
+      <WorkspaceShell
+        chatReady
+        toolbar={<div className="px-4 py-3 sm:px-6"><Skeleton className="h-6 w-48" /></div>}
+        chart={<Skeleton className="mx-auto h-48 w-full max-w-xl rounded-md" />}
+        insights={<div className="space-y-3"><Skeleton className="h-4 w-40" /><Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-4/6" /></div>}
+        chat={<div className="space-y-3 p-4"><Skeleton className="h-12 w-full" /><Skeleton className="h-16 w-2/5" /><Skeleton className="h-16 w-3/5" /></div>}
+      />
     );
   }
 
-  // If no visualization found, show empty state
   if (!visualization) {
     return (
-      <div className="container py-12 px-4 text-center">
-        <h1 className="text-2xl font-bold mb-6">Visualization Not Found</h1>
-        <p className="text-gray-600 mb-8">
-          The visualization you're looking for doesn't exist or has been deleted.
-        </p>
-        <Button onClick={() => setLocation("/projects")}>
-          Back to Projects
-        </Button>
-      </div>
+      <StatusMessage
+        title="Visualization not found"
+        body="The visualization you're looking for doesn't exist or has been deleted."
+        onBack={() => setLocation("/projects")}
+      />
     );
   }
 
   return (
-    <div className="flex flex-col md:flex-row h-[calc(100vh-64px)]">
-      {/* Left Panel: Preview */}
-      <div className="w-full md:w-1/2 p-4 md:p-6 md:border-r border-gray-200 overflow-y-auto h-[50vh] md:h-full">
-        <div className="max-w-xl mx-auto">
-          <PreviewSection 
-            visualization={visualization} 
+    <WorkspaceShell
+      chatReady
+      toolbar={<WorkspaceToolbar visualization={visualization} isGenerating={isGeneratingInsights} />}
+      chart={
+        <PreviewSection
+          part="chart"
+          chartFit="panel"
+          visualization={visualization}
+          summary={summary}
+          onGenerateInsights={generateInsights}
+          isGenerating={isGeneratingInsights}
+          showToolbar={false}
+        />
+      }
+      insights={
+        <>
+          <PreviewSection
+            part="insights"
+            insightsDensity="panel"
+            visualization={visualization}
             summary={summary}
             onGenerateInsights={generateInsights}
             isGenerating={isGeneratingInsights}
+            showToolbar={false}
           />
           {analysisError && (
-            <div role="alert" className="my-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-900">
+            <div role="alert" className="mt-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-900">
               <p className="font-semibold">Analysis could not be completed</p>
               <p className="mt-1">{analysisError}</p>
               <p className="mt-1">Your previously saved report is unchanged. Use Reanalyze to retry.</p>
             </div>
           )}
-        </div>
-      </div>
+        </>
+      }
+      chat={
+        <>
+          <ChatMessages
+            messages={messages}
+            isTyping={isTyping}
+            phase={isGeneratingInsights ? "working" : summary || visualization.initialSummary ? "ready" : "saved"}
+            recommendedQuestions={recommendedQuestions}
+            onSelectQuestion={(question) => void sendMessage(question)}
+            isSending={isSending || isTyping}
+          />
+          <ChatInput
+            onSendMessage={sendMessage}
+            isSending={isSending || isTyping}
+            suggestedFollowUp={messages.length > 0 ? suggestedFollowUp : null}
+          />
+        </>
+      }
+    />
+  );
+}
 
-      {/* Right Panel: Chat Interface */}
-      <div className="w-full md:w-1/2 flex flex-col h-[50vh] md:h-full">
-        <ChatHeader />
-        
-        <ChatMessages messages={messages} isTyping={isTyping} />
-        
-        <ChatInput 
-          onSendMessage={sendMessage} 
-          isSending={isTyping} 
-        />
-      </div>
+function StatusMessage({ title, body, onBack }: { title: string; body: string; onBack: () => void }) {
+  return (
+    <div className="mx-auto max-w-lg px-6 py-16 text-center">
+      <h1 className="text-title font-semibold text-navy">{title}</h1>
+      <p className="mt-3 text-body text-storm">{body}</p>
+      <Button variant="brand" className="mt-6" onClick={onBack}>
+        Back to Archive
+      </Button>
     </div>
   );
 }

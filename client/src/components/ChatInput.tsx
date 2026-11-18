@@ -1,76 +1,97 @@
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
+import { ArrowRight, ArrowUp, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 
 interface ChatInputProps {
   onSendMessage: (message: string) => Promise<void>;
   isSending: boolean;
+  disabled?: boolean;
+  suggestedFollowUp?: string | null;
 }
 
-export default function ChatInput({ onSendMessage, isSending }: ChatInputProps) {
+export default function ChatInput({
+  onSendMessage,
+  isSending,
+  disabled = false,
+  suggestedFollowUp = null,
+}: ChatInputProps) {
   const [message, setMessage] = useState("");
-  
-  const suggestions = [
-    "Compare regions",
-    "Identify trends",
-    "Best performing quarter"
-  ];
+  const cannotSend = !message.trim() || isSending || disabled;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!message.trim() || isSending) return;
-    
+  const handleSubmit = async (event: FormEvent) => {
+    event.preventDefault();
+    if (cannotSend) return;
+
+    const content = message;
     try {
-      await onSendMessage(message);
+      await onSendMessage(content);
       setMessage("");
     } catch (error) {
       console.error("Error sending message:", error);
     }
   };
 
-  const handleSuggestionClick = (suggestion: string) => {
-    setMessage(suggestion);
-  };
+  const showFollowUp = Boolean(suggestedFollowUp) && !isSending && !disabled;
 
   return (
-    <div className="border-t border-slate-200 p-5 bg-white">
-      <form className="relative" onSubmit={handleSubmit}>
+    <div className="shrink-0 border-t border-sky bg-white px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-6">
+      <div className="mx-auto w-full max-w-[760px]">
+        {showFollowUp && suggestedFollowUp && (
+          <PageFollowUp suggestion={suggestedFollowUp} isSending={isSending} onSend={onSendMessage} />
+        )}
+        <form className={cn("flex items-center gap-2", showFollowUp && "mt-2")} onSubmit={handleSubmit}>
         <Input
           type="text"
-          placeholder="Ask me anything about your data..."
-          className="block w-full rounded-2xl border-slate-200 bg-slate-50 shadow-sm focus:border-blue-500 focus:ring-blue-500 pr-16 py-3.5 text-sm placeholder:text-slate-400"
+          placeholder="Ask about your chart..."
+          aria-label="Message Data Vizard"
+          className="h-11 flex-1 border-sky bg-white text-navy placeholder:text-storm focus-visible:ring-navy/30 focus-visible:ring-offset-0"
           value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          disabled={isSending}
+          onChange={(event) => setMessage(event.target.value)}
+          disabled={isSending || disabled}
         />
-        <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-          <Button 
-            type="submit" 
-            size="icon"
-            variant="ghost"
-            className="inline-flex items-center justify-center h-8 w-8 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:shadow-lg hover:shadow-blue-500/30 transition-all duration-200"
-            disabled={!message.trim() || isSending}
-          >
-            {isSending ? (
-              <i className="fas fa-spinner fa-spin text-white text-xs"></i>
-            ) : (
-              <i className="fas fa-paper-plane text-white text-xs"></i>
-            )}
-          </Button>
-        </div>
-      </form>
-      <div className="flex items-center gap-2 mt-3 px-1">
-        <span className="text-xs text-slate-400 font-medium">Quick:</span>
-        {suggestions.map((suggestion, index) => (
-          <button 
-            key={index}
-            className="px-3 py-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors text-xs font-medium"
-            onClick={() => handleSuggestionClick(suggestion)}
-          >
-            {suggestion}
-          </button>
-        ))}
+        <Button
+          type="submit"
+          variant="brand"
+          size="icon"
+          className="h-11 w-11"
+          aria-label={isSending ? "Sending message" : "Send message"}
+          disabled={cannotSend}
+        >
+          {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUp className="h-4 w-4" />}
+        </Button>
+        </form>
       </div>
+    </div>
+  );
+}
+
+function PageFollowUp({
+  suggestion,
+  isSending,
+  onSend,
+}: {
+  suggestion: string;
+  isSending: boolean;
+  onSend: (message: string) => Promise<void>;
+}) {
+  return (
+    <div className="max-w-full">
+      <p className="text-caption font-medium text-storm">Continue exploring</p>
+      <button
+        type="button"
+        disabled={isSending}
+        onClick={() => void onSend(suggestion)}
+        className={cn(
+          "mt-2 flex w-full items-start gap-2 rounded-lg border border-sky bg-white px-3 py-2.5 text-left text-sm leading-snug text-navy",
+          "transition-colors hover:bg-cream focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy/30",
+          "disabled:cursor-not-allowed disabled:opacity-60",
+        )}
+      >
+        <span className="min-w-0 flex-1 break-words">{suggestion}</span>
+        <ArrowRight className="mt-0.5 h-4 w-4 shrink-0 text-forest" aria-hidden />
+      </button>
     </div>
   );
 }

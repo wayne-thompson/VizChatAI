@@ -1,11 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
-import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Visualization } from '@shared/schema';
-import { AnalysisResult } from '@/lib/openai';
-import { apiRequest } from '@/lib/queryClient';
-import { useToast } from '@/hooks/use-toast';
-import { useLocation } from 'wouter';
+import { useMemo } from "react";
+import { Visualization } from "@shared/schema";
+import { AnalysisBody } from "@/components/workspace/AnalysisBody";
+import { ChartViewer } from "@/components/workspace/ChartViewer";
+import { readAnalysis } from "@/components/workspace/readAnalysis";
+import { WorkspaceToolbar } from "@/components/workspace/WorkspaceToolbar";
 
 interface PreviewSectionProps {
   visualization: Visualization | null;
@@ -13,278 +11,55 @@ interface PreviewSectionProps {
   summary: { summary: string; points: string[] } | null;
   isGenerating: boolean;
   onGenerateInsights?: () => Promise<void>;
+  showToolbar?: boolean;
+  part?: "all" | "chart" | "insights";
+  chartFit?: "stage" | "panel";
+  insightsDensity?: "default" | "panel";
 }
 
-export default function PreviewSection({ 
-  visualization, 
+export default function PreviewSection({
+  visualization,
   visualizations = [],
-  summary, 
+  summary,
   isGenerating,
-  onGenerateInsights
+  onGenerateInsights,
+  showToolbar = true,
+  part = "all",
+  chartFit = "stage",
+  insightsDensity = "default",
 }: PreviewSectionProps) {
-  const { toast } = useToast();
-  const [, setLocation] = useLocation();
-  const [summaryData, setSummaryData] = useState<{ summary: string; points: string[] } | null>(null);
-  const [isEditingTitle, setIsEditingTitle] = useState(false);
-  const [title, setTitle] = useState('');
-  const [isSavingTitle, setIsSavingTitle] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const titleInputRef = useRef<HTMLInputElement>(null);
-  
-  useEffect(() => {
-    if (summary) {
-      setSummaryData(summary);
-    } else if (visualization?.initialSummary) {
-      try {
-        setSummaryData(JSON.parse(visualization.initialSummary));
-      } catch (e) {
-        setSummaryData(null);
-      }
-    } else {
-      setSummaryData(null);
-    }
-    
-    // Set title from visualization when it changes
-    if (visualization) {
-      setTitle(visualization.title || 'Untitled Visualization');
-    }
-  }, [summary, visualization]);
-  
-  // Handle editing title
-  const startEditingTitle = () => {
-    setIsEditingTitle(true);
-    // Focus the input after render
-    setTimeout(() => {
-      if (titleInputRef.current) {
-        titleInputRef.current.focus();
-        titleInputRef.current.select();
-      }
-    }, 100);
-  };
-  
-  // Handle saving the title
-  const saveTitle = async () => {
-    if (!visualization) return;
-    
-    // Don't save empty titles
-    if (!title.trim()) {
-      setTitle(visualization.title || 'Untitled Visualization');
-      setIsEditingTitle(false);
-      return;
-    }
-    
-    // Skip if title hasn't changed
-    if (title === visualization.title) {
-      setIsEditingTitle(false);
-      return;
-    }
-    
-    try {
-      setIsSavingTitle(true);
-      
-      // Call API to update title
-      await apiRequest(`/api/visualizations/${visualization.id}`, {
-        method: 'PATCH',
-        data: { title }
-      });
-      
-      toast({
-        title: 'Title updated',
-        description: 'Visualization title has been updated',
-        variant: 'default'
-      });
-      
-      setIsEditingTitle(false);
-    } catch (error) {
-      toast({
-        title: 'Error updating title',
-        description: 'Could not update the visualization title',
-        variant: 'destructive'
-      });
-      // Reset to original title on error
-      setTitle(visualization.title || 'Untitled Visualization');
-    } finally {
-      setIsSavingTitle(false);
-    }
-  };
-
-  const saveReport = async () => {
-    setIsSaving(true);
-    
-    try {
-      // The report is already saved in the database, we just need to show success
-      toast({
-        title: "Report saved",
-        description: "Your analysis has been archived successfully.",
-      });
-      
-      // Navigate back to homepage for fresh upload
-      setLocation('/');
-    } catch (error) {
-      console.error('Error saving report:', error);
-      toast({
-        title: "Error", 
-        description: "Failed to save report. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleShare = () => {
-    if (!visualization?.shareId) return;
-    
-    const reportUrl = `${window.location.origin}/report/${visualization.shareId}`;
-    navigator.clipboard.writeText(reportUrl);
-    
-    toast({
-      title: "Link copied",
-      description: "Report link has been copied to clipboard",
-    });
-  };
-  
-  // Handle key press events in title input
-  const handleTitleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      saveTitle();
-    } else if (e.key === 'Escape') {
-      // Reset to original title and exit edit mode
-      setTitle(visualization?.title || 'Untitled Visualization');
-      setIsEditingTitle(false);
-    }
-  };
+  const charts = useMemo(() => {
+    if (!visualization) return [];
+    return visualizations.length > 0 ? visualizations : [visualization];
+  }, [visualization, visualizations]);
 
   if (!visualization) return null;
-  
+
+  const analysis = readAnalysis(summary, visualization.initialSummary);
+
+  const chartView = <ChartViewer charts={charts} fit={chartFit} />;
+  const insights = (
+    <AnalysisBody
+      analysis={analysis}
+      isGenerating={isGenerating}
+      chartCount={charts.length}
+      onGenerateInsights={onGenerateInsights}
+      density={insightsDensity}
+    />
+  );
+
+  if (part === "chart") return chartView;
+  if (part === "insights") return insights;
+
   return (
-    <div id="preview-section" className="mb-6">
-      {/* Editable Title */}
-      <div className="mb-4 flex items-center">
-        {isEditingTitle ? (
-          <div className="flex-1 flex space-x-2 items-center">
-            <input
-              ref={titleInputRef}
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              onKeyDown={handleTitleKeyDown}
-              onBlur={saveTitle}
-              className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-lg font-medium focus:outline-none focus:ring-2 focus:ring-primary/50"
-              placeholder="Enter visualization title"
-              disabled={isSavingTitle}
-            />
-            {isSavingTitle && (
-              <i className="fas fa-spinner fa-spin text-gray-400"></i>
-            )}
-          </div>
-        ) : (
-          <div 
-            onClick={startEditingTitle}
-            className="flex items-center space-x-2 cursor-pointer group px-1 py-0.5 rounded-md hover:bg-gray-100"
-          >
-            <h3 className={`text-lg font-medium ${title ? 'text-gray-800' : 'text-gray-500 italic'}`}>
-              {title || "Add a title"}
-            </h3>
-            <i className="fas fa-pencil-alt text-gray-500 text-sm"></i>
-          </div>
-        )}
-      </div>
-      
-      <div className="preview-container overflow-y-auto bg-white rounded-lg border border-gray-200 p-4">
-        {visualizations.length > 1 ? (
-          <div className="space-y-6">
-            {visualizations.map((viz, index) => (
-              <div key={viz.id}>
-                <img 
-                  src={viz.imageBase64} 
-                  alt={`Visualization ${index + 1}`} 
-                  className="mx-auto max-h-[320px] w-auto object-contain rounded" 
-                />
-              </div>
-            ))}
-          </div>
-        ) : visualization?.imageBase64 ? (
-          <img 
-            src={visualization.imageBase64} 
-            alt="Uploaded visualization" 
-            className="mx-auto max-h-[320px] w-auto object-contain rounded" 
-          />
-        ) : (
-          <Skeleton className="h-64 w-full" />
-        )}
-      </div>
-      
-      <div className="mt-4 bg-white rounded-lg border border-gray-200 p-4">
-        <div className="mb-2 flex items-center justify-between gap-3">
-          <h3 className="font-medium text-gray-800">Summary</h3>
-          {onGenerateInsights && (
-            <Button variant="outline" size="sm" disabled={isGenerating} onClick={() => void onGenerateInsights()}>
-              {isGenerating ? "Analyzing..." : summaryData ? "Reanalyze" : "Analyze chart"}
-            </Button>
-          )}
+    <div id="preview-section">
+      {showToolbar && (
+        <div className="mb-4 overflow-hidden rounded-lg border border-sky bg-white">
+          <WorkspaceToolbar visualization={visualization} isGenerating={isGenerating} />
         </div>
-        <div id="ai-summary" className="text-sm text-gray-600">
-          {isGenerating ? (
-            <div className="flex space-x-1 items-center">
-              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0.2s" }}></div>
-              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0.4s" }}></div>
-              <span className="ml-2">Analyzing your visualization...</span>
-            </div>
-          ) : summaryData ? (
-            <>
-              <p>{summaryData.summary}</p>
-              {summaryData.points && summaryData.points.length > 0 && (
-                <ul className="list-disc pl-5 mt-2 space-y-1">
-                  {summaryData.points.map((point, index) => (
-                    <li key={index}>
-                      {typeof point === 'string' ? point : 
-                       typeof point === 'object' && point && 'content' in point ? (point as any).content :
-                       typeof point === 'object' ? String(point).replace(/[{}]/g, '') :
-                       String(point)}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </>
-          ) : (
-            <p>No analysis has been saved for this visualization yet.</p>
-          )}
-        </div>
-      </div>
-      
-      {/* Action Buttons */}
-      <div className="mt-4 flex justify-end space-x-2">
-        <Button
-          onClick={handleShare}
-          disabled={!visualization?.shareId}
-          variant="outline"
-          className="inline-flex items-center px-3 py-1.5 text-sm font-medium"
-          data-testid="button-share"
-        >
-          <i className="fas fa-share-alt mr-1.5"></i>
-          Share
-        </Button>
-        <Button
-          onClick={saveReport}
-          disabled={isSaving || isGenerating}
-          variant="outline"
-          className="inline-flex items-center px-3 py-1.5 text-sm font-medium"
-        >
-          {isSaving ? (
-            <>
-              <i className="fas fa-spinner fa-spin mr-1.5"></i>
-              Saving...
-            </>
-          ) : (
-            <>
-              <i className="fas fa-save mr-1.5"></i>
-              Save Report
-            </>
-          )}
-        </Button>
-      </div>
+      )}
+      {chartView}
+      <div className="mt-6">{insights}</div>
     </div>
   );
 }
