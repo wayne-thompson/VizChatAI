@@ -4,6 +4,7 @@ import { Archive, House, PenLine, Plus, User } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { RailMark, Wordmark } from "@/components/brand/Wordmark";
+import { ModelRail } from "@/components/ModelRail";
 import { AuthPromptProvider, useOpenAuth } from "@/components/auth/AuthPrompt";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
@@ -159,8 +160,10 @@ function AppRail({ location, onNewAnalysis }: { location: string; onNewAnalysis:
         {PRIMARY_NAV.map((item) => (
           <RailButton key={item.href} item={item} location={location} onNewAnalysis={onNewAnalysis} />
         ))}
-        <div className="mt-auto">
+        <div className="mt-auto flex flex-col items-center gap-3">
           <RailButton item={ACCOUNT_NAV} location={location} onNewAnalysis={onNewAnalysis} />
+          <div className="h-px w-7 bg-navy/20" aria-hidden />
+          <ModelRail />
         </div>
       </nav>
     </aside>
